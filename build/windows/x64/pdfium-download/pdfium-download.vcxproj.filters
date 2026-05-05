@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\3501cc38ea1ba0595d9e935a58059b41\pdfium-download-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\3501cc38ea1ba0595d9e935a58059b41\pdfium-download-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\3501cc38ea1ba0595d9e935a58059b41\pdfium-download-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\3501cc38ea1ba0595d9e935a58059b41\pdfium-download-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\3501cc38ea1ba0595d9e935a58059b41\pdfium-download-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\3501cc38ea1ba0595d9e935a58059b41\pdfium-download-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\3501cc38ea1ba0595d9e935a58059b41\pdfium-download-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\3501cc38ea1ba0595d9e935a58059b41\pdfium-download-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\d2a0c51ca7799d0f2ab8849e1110bf90\pdfium-download-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\7778a68619ed16ad25d4638cfca8255b\pdfium-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\dev\venastudio\build\windows\x64\pdfium-download\CMakeFiles\pdfium-download" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{5B53699A-33EB-3095-907A-36AEBA425B9A}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,5 @@
+C:\dev\venastudio\windows\runner\flutter_window.cpp;C:\dev\venastudio\build\windows\x64\runner\venastudio.dir\Debug\flutter_window.obj
+C:\dev\venastudio\windows\runner\main.cpp;C:\dev\venastudio\build\windows\x64\runner\venastudio.dir\Debug\main.obj
+C:\dev\venastudio\windows\runner\utils.cpp;C:\dev\venastudio\build\windows\x64\runner\venastudio.dir\Debug\utils.obj
+C:\dev\venastudio\windows\runner\win32_window.cpp;C:\dev\venastudio\build\windows\x64\runner\venastudio.dir\Debug\win32_window.obj
+C:\dev\venastudio\windows\flutter\generated_plugin_registrant.cc;C:\dev\venastudio\build\windows\x64\runner\venastudio.dir\Debug\generated_plugin_registrant.obj

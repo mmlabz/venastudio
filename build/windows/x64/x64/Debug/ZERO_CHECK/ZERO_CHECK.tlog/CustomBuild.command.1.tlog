@@ -1,0 +1,10 @@
+^C:\DEV\VENASTUDIO\BUILD\WINDOWS\X64\CMAKEFILES\0ED681495753FB2C4363B8A0855717C7\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\Microsoft Visual Studio\18\Insiders\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -SC:/dev/venastudio/windows -BC:/dev/venastudio/build/windows/x64 --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/dev/venastudio/build/windows/x64/venastudio.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

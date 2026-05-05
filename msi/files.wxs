@@ -1,0 +1,169 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Fragment>
+        <DirectoryRef Id="INSTALLFOLDER">
+            <Component Id="cmpDC22F85144003CB2F05080B8CF79FC46" Guid="{0FF0C9DC-422E-4F44-89B9-167D15C6BEA5}">
+                <File Id="fil230F9A11CF93D3D1A94FAA7A9D69118F" KeyPath="yes" Source="$(var.ReleaseDir)\flutter_windows.dll" />
+            </Component>
+            <Component Id="cmpE9F08FAD2A628FCE472306FE8DCE93D5" Guid="{02B42196-F9B8-4698-86BC-E9D6B4423DD7}">
+                <File Id="fil30EDA5C30D6FBF24B7553A1EAE1D4103" KeyPath="yes" Source="$(var.ReleaseDir)\pdfium.dll" />
+            </Component>
+            <Component Id="cmp299587F2823208A846ADF81281814C14" Guid="{64922572-DF25-4574-9664-184528A8261B}">
+                <File Id="fil539970497540B90BFFB15CF09278FCD0" KeyPath="yes" Source="$(var.ReleaseDir)\printing_plugin.dll" />
+            </Component>
+            <Component Id="cmp365E14AF82ADC6C540D523913CE3069A" Guid="{7220160E-11E0-4BE2-ACA7-A664585F9BA7}">
+                <File Id="filED86BBF8F7C431C358F71926AE1678E7" KeyPath="yes" Source="$(var.ReleaseDir)\screen_retriever_windows_plugin.dll" />
+            </Component>
+            <Component Id="cmpDC6C0F07F2566242783249D52FE64001" Guid="{B1C8BF42-0C3B-4AF3-8796-DD3BAD96EB07}">
+                <File Id="filA20D670897B13CD4A184477D19D823A4" KeyPath="yes" Source="$(var.ReleaseDir)\venastudio.exe" />
+            </Component>
+            <Component Id="cmp70D7EF34E9B6D1081400F0FC7644524D" Guid="{D58FDFFC-8B12-4760-8607-F22FDD695A1F}">
+                <File Id="fil6EACF2B9B1DC081EB15B302C51C8FAD7" KeyPath="yes" Source="$(var.ReleaseDir)\window_manager_plugin.dll" />
+            </Component>
+            <Directory Id="dir76A8B56EDC1C4DD3CB4177F3704BC91E" Name="data">
+                <Component Id="cmpCF83D7D65587D05A151D1E25702E167F" Guid="{8E19EE0C-7C67-451E-8AD4-98859D8AC35E}">
+                    <File Id="filC8D6740BEA75F19BA5204B613C03D8A8" KeyPath="yes" Source="$(var.ReleaseDir)\data\app.so" />
+                </Component>
+                <Component Id="cmp0E0DCB81807E433F9DBCEB0D089B25B5" Guid="{021A03D8-EA23-4EDE-BB0D-C4A0BB917AFB}">
+                    <File Id="filFB2ED5EBC1081127146486443055DB0D" KeyPath="yes" Source="$(var.ReleaseDir)\data\icudtl.dat" />
+                </Component>
+                <Directory Id="dir4311D903D70E55164A03E9E9374AC9B0" Name="flutter_assets">
+                    <Component Id="cmp362972CB336FCADAB6FAD4E58ABB50C0" Guid="{F0B52C87-E51C-427C-A67F-1329EB43F981}">
+                        <File Id="filF34A97E96DF56DC7F9FA1F571A635270" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\AssetManifest.bin" />
+                    </Component>
+                    <Component Id="cmp7A9B0136F23F84A4A09D4D0E28D8636B" Guid="{A88BFE4A-407B-4604-A71E-E9A530610902}">
+                        <File Id="fil130B1805FDD25A50E354B5ADEEAC89F4" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\FontManifest.json" />
+                    </Component>
+                    <Component Id="cmp90671292812F4FFA17B66812D7B02F23" Guid="{923FCF9D-023E-42CF-A61E-536F14176C7C}">
+                        <File Id="fil7BB5C7A3A762FED9EC3F844577DD0A9E" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\NativeAssetsManifest.json" />
+                    </Component>
+                    <Component Id="cmpB22BCD9EFB853D38668ABE777CBF404C" Guid="{909FC413-21B2-4E68-A144-6EAFF418EBF7}">
+                        <File Id="fil95F1B70B711016C2E2A74411F6B41801" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\NOTICES.Z" />
+                    </Component>
+                    <Directory Id="dir44DE80E5FFD251532250E7F4BB7B2821" Name="assets">
+                        <Directory Id="dir64FBE6732848389BC600178F3834F3DD" Name="fonts">
+                            <Component Id="cmp50ACE89AF7BA47A5CBB73969AF47D56E" Guid="{E591C113-AEF7-442B-8052-C642BA181A7E}">
+                                <File Id="fil9F97E2730FB0B56D73FA8DEEC5887F38" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\fonts\Orbitron-Bold.ttf" />
+                            </Component>
+                            <Component Id="cmpD09EBB9E5F879DF6C160911B4B9A704F" Guid="{8FA81474-52AA-407B-95B0-5F07EAE55A59}">
+                                <File Id="fil5716BC823C568B052C8107351A0CD083" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\fonts\Orbitron-Regular.ttf" />
+                            </Component>
+                        </Directory>
+                        <Directory Id="dirB8B90141DE73A186468006574A5758A4" Name="icons">
+                            <Component Id="cmpF38B0406B6FB8B7304DD49011DAFF81C" Guid="{8E39414C-355F-4ACC-9366-0CB6B83856BF}">
+                                <File Id="fil52DB3471A5124099F1D5AABDB1D83EDA" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\icons\gel.png" />
+                            </Component>
+                            <Component Id="cmp89BA0A97F51B31327731E7D1771F8DA1" Guid="{B7785D29-DE1D-423D-91BD-5AF928FC4E9C}">
+                                <File Id="filF0F284C44799A4F80C3A28023532206F" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\icons\gumgel.png" />
+                            </Component>
+                            <Component Id="cmp8CA031698EFFED61914D41E3110EE4FC" Guid="{24DE4F8A-2147-4805-AF6D-CF5A44B13DFD}">
+                                <File Id="fil6D709ACC61AB25AE99B0560ABCE542BE" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\icons\pedigel.jpg" />
+                            </Component>
+                            <Component Id="cmp24FBEFE2F3B195502F8C96E81EB58851" Guid="{97D5C64A-7EC0-4B0F-8655-02BA9204C797}">
+                                <File Id="filE58177B04A4F0A0EAEBD2134AEE75420" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\icons\tips.png" />
+                            </Component>
+                        </Directory>
+                        <Directory Id="dirE75FB312EAA247C0082F3701FE583C7B" Name="images">
+                            <Component Id="cmpBFA0447AF5644429CE3BD8AE357E2251" Guid="{0F5E7E5A-AA88-43D3-A5CE-5348428AEA0E}">
+                                <File Id="fil0991AE84910F66DEB7E5D86B9E929F33" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\images\background.jpg" />
+                            </Component>
+                            <Component Id="cmpB8D5346DF5DA2FC6AEEB911687F0784E" Guid="{F0CC6D47-F15F-4AC9-8551-1C0104D5A63B}">
+                                <File Id="fil73742109BA79B7BD615478390579CB1E" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\images\background.png" />
+                            </Component>
+                            <Component Id="cmpC019543E1B5BA50C018535C0CD7243EB" Guid="{545DF64E-B622-461A-BB1E-C7F4647A39E7}">
+                                <File Id="fil2869B38AE3CFCA7C0F4EC96F058F2D73" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\images\empty_dark.svg" />
+                            </Component>
+                            <Component Id="cmp70FCDCCF2F4B9C4FF835937AD59220C6" Guid="{78EDEEAD-C15E-4228-BA6A-DFA470B1C3BA}">
+                                <File Id="filB64A24C80EA1847DABEB0395D6ABC91B" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\images\empty_light.svg" />
+                            </Component>
+                            <Component Id="cmp852E70BECAB6CD44C316F24C696C5C93" Guid="{F812E1BD-99A4-410A-BB76-9DD9A25744F4}">
+                                <File Id="filAF9CE28DE5215B6010B389218C6AD42C" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\images\logo.jpg" />
+                            </Component>
+                            <Component Id="cmp6AC04D46B038DBE18BF65EB21A8B1E57" Guid="{519C94EA-8395-4732-98EE-714017099A95}">
+                                <File Id="fil86874BB90E64156A78C7EB8A92FDFA10" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\assets\images\logo.png" />
+                            </Component>
+                        </Directory>
+                    </Directory>
+                    <Directory Id="dirE2A82CA30E4E1381D520C8FF40996653" Name="fonts">
+                        <Component Id="cmp9475753282C5250DEC233DF924257EDD" Guid="{CD99B2D5-D3A3-49AD-9094-3B11915F04E7}">
+                            <File Id="fil95709FE501C331265C6CAAD00C2EA783" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\fonts\MaterialIcons-Regular.otf" />
+                        </Component>
+                    </Directory>
+                    <Directory Id="dirE3A5CD763BAF580FDB3696619F614D3F" Name="packages">
+                        <Directory Id="dir5FF583AEA68E18714B78C24666F2A264" Name="cupertino_icons">
+                            <Directory Id="dir3FA823D26185B1B6457D4DCE2A77C372" Name="assets">
+                                <Component Id="cmp995EB1479D86208A86E88112F9873FE0" Guid="{C4575412-6CA7-486C-ABF7-B5A2EA418B52}">
+                                    <File Id="fil7EC168CAE9512344DB7F6000958E43CF" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\packages\cupertino_icons\assets\CupertinoIcons.ttf" />
+                                </Component>
+                            </Directory>
+                        </Directory>
+                        <Directory Id="dirD9B1F3FA266D02821F0F934540A41357" Name="fluttertoast">
+                            <Directory Id="dir704D50697B13852EEDC43578FAB64E35" Name="assets">
+                                <Component Id="cmp5587C73F4075675763E642345C58BCDE" Guid="{B2BF4E2F-39EE-4E29-BA20-CF774581A725}">
+                                    <File Id="fil0F52ECB80CC93DEA710C6626F2082D04" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\packages\fluttertoast\assets\toastify.css" />
+                                </Component>
+                                <Component Id="cmpBC67FA781E466DE66D550476DF46B503" Guid="{8C22257E-691A-4A5B-AE1A-6925CBBF6C06}">
+                                    <File Id="fil28EFBE8621C96E99B796AC6CE1673638" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\packages\fluttertoast\assets\toastify.js" />
+                                </Component>
+                            </Directory>
+                        </Directory>
+                        <Directory Id="dirE47508B2D3D950EBF601D845CEA280D4" Name="flutter_bluetooth_printer">
+                            <Directory Id="dir270DFCA77A7E388CBAFAF1775DD0DA92" Name="fonts">
+                                <Component Id="cmp374A07491B125EBD31333EDA801C01E6" Guid="{A71AB9F4-2139-4D73-A915-5FF82A1FF89B}">
+                                    <File Id="fil2556B187CB696A9DCF77428D06AE4122" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\packages\flutter_bluetooth_printer\fonts\JetBrainsMono-ExtraBold.ttf" />
+                                </Component>
+                                <Component Id="cmpB50AB1F7958FF5C37D779AC0D56752D4" Guid="{F2C0FF89-6558-44FE-98F5-7EF56D535FE3}">
+                                    <File Id="filA4F791E73ABB3A2E5063BBC46FCF6533" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\packages\flutter_bluetooth_printer\fonts\JetBrainsMono-Regular.ttf" />
+                                </Component>
+                            </Directory>
+                        </Directory>
+                    </Directory>
+                    <Directory Id="dir5C01D37FD138B424B270832E735CB541" Name="shaders">
+                        <Component Id="cmpB754D63122F49081C0DAAE0074FBD9C1" Guid="{80B0162B-C9A3-4E89-940C-1FE7160056E8}">
+                            <File Id="filFA5374F8D6DDBC810796AB1AB906FB74" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\shaders\ink_sparkle.frag" />
+                        </Component>
+                        <Component Id="cmp14E84BBADE26D929C9F8A72C4CFCDFF1" Guid="{5F9F301B-8CF5-40DF-A779-34F58D1E7720}">
+                            <File Id="fil2CA73DA06B1638CA75CBFC6099280030" KeyPath="yes" Source="$(var.ReleaseDir)\data\flutter_assets\shaders\stretch_effect.frag" />
+                        </Component>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </DirectoryRef>
+    </Fragment>
+    <Fragment>
+        <ComponentGroup Id="VenaStudioFiles">
+            <ComponentRef Id="cmpDC22F85144003CB2F05080B8CF79FC46" />
+            <ComponentRef Id="cmpE9F08FAD2A628FCE472306FE8DCE93D5" />
+            <ComponentRef Id="cmp299587F2823208A846ADF81281814C14" />
+            <ComponentRef Id="cmp365E14AF82ADC6C540D523913CE3069A" />
+            <ComponentRef Id="cmpDC6C0F07F2566242783249D52FE64001" />
+            <ComponentRef Id="cmp70D7EF34E9B6D1081400F0FC7644524D" />
+            <ComponentRef Id="cmpCF83D7D65587D05A151D1E25702E167F" />
+            <ComponentRef Id="cmp0E0DCB81807E433F9DBCEB0D089B25B5" />
+            <ComponentRef Id="cmp362972CB336FCADAB6FAD4E58ABB50C0" />
+            <ComponentRef Id="cmp7A9B0136F23F84A4A09D4D0E28D8636B" />
+            <ComponentRef Id="cmp90671292812F4FFA17B66812D7B02F23" />
+            <ComponentRef Id="cmpB22BCD9EFB853D38668ABE777CBF404C" />
+            <ComponentRef Id="cmp50ACE89AF7BA47A5CBB73969AF47D56E" />
+            <ComponentRef Id="cmpD09EBB9E5F879DF6C160911B4B9A704F" />
+            <ComponentRef Id="cmpF38B0406B6FB8B7304DD49011DAFF81C" />
+            <ComponentRef Id="cmp89BA0A97F51B31327731E7D1771F8DA1" />
+            <ComponentRef Id="cmp8CA031698EFFED61914D41E3110EE4FC" />
+            <ComponentRef Id="cmp24FBEFE2F3B195502F8C96E81EB58851" />
+            <ComponentRef Id="cmpBFA0447AF5644429CE3BD8AE357E2251" />
+            <ComponentRef Id="cmpB8D5346DF5DA2FC6AEEB911687F0784E" />
+            <ComponentRef Id="cmpC019543E1B5BA50C018535C0CD7243EB" />
+            <ComponentRef Id="cmp70FCDCCF2F4B9C4FF835937AD59220C6" />
+            <ComponentRef Id="cmp852E70BECAB6CD44C316F24C696C5C93" />
+            <ComponentRef Id="cmp6AC04D46B038DBE18BF65EB21A8B1E57" />
+            <ComponentRef Id="cmp9475753282C5250DEC233DF924257EDD" />
+            <ComponentRef Id="cmp995EB1479D86208A86E88112F9873FE0" />
+            <ComponentRef Id="cmp5587C73F4075675763E642345C58BCDE" />
+            <ComponentRef Id="cmpBC67FA781E466DE66D550476DF46B503" />
+            <ComponentRef Id="cmp374A07491B125EBD31333EDA801C01E6" />
+            <ComponentRef Id="cmpB50AB1F7958FF5C37D779AC0D56752D4" />
+            <ComponentRef Id="cmpB754D63122F49081C0DAAE0074FBD9C1" />
+            <ComponentRef Id="cmp14E84BBADE26D929C9F8A72C4CFCDFF1" />
+        </ComponentGroup>
+    </Fragment>
+</Wix>
