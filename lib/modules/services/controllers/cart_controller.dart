@@ -125,6 +125,10 @@ class CartNotifier extends StateNotifier<Cart> {
     final phn = (state.phone ?? '').replaceFirst('0', '+254');
     final allAssigned = state.assigned ?? {};
     final mainAgent = state.mainAgent;
+    final settings = ref.read(settingsServicesProvider);
+    final queueEnabled = settings.trackQueue;
+    final smartAssignmentEnabled =
+        settings.trackStock || settings.trackAttendance || settings.trackQueue;
 
     String assign = mainAgent != null ? '1' : '';
 
@@ -175,6 +179,11 @@ class CartNotifier extends StateNotifier<Cart> {
       'pay_url': payUrl,
       'mode': mode,
       'assign': assign,
+      'queue_enabled': queueEnabled ? '1' : '0',
+      'track_queue': queueEnabled ? '1' : '0',
+      'smart_assignment_enabled': smartAssignmentEnabled ? '1' : '0',
+      'track_stock': settings.trackStock ? '1' : '0',
+      'track_attendance': settings.trackAttendance ? '1' : '0',
       'cart_addon': jsonEncode(state.addons),
       'addon_agents': '[]',
       'shop': '${user.shop ?? ''}',

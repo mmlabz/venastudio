@@ -296,7 +296,7 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
         .firstOrNull;
 
     final adsrv = addons.map((e) {
-      return {
+      return jsonEncode({
         'id': agents['${e.id}-${e.quantity}']?.id ?? '-1',
         'name': agents['${e.id}-${e.quantity}']?.name ?? '',
         'serviceId': '${e.id}',
@@ -307,12 +307,12 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
         'amount': '${e.amount}',
         'price': e.amount,
         'agents': [],
-      };
+      });
     }).toList();
     final body = {
       'mode': 'After',
       'assign': '1',
-      'cart_addon': jsonEncode(adsrv),
+      'cart_addon': '$adsrv',
       'addon_agents': '[]',
       'shop': user?.shop,
       'user': '${user?.id}',
