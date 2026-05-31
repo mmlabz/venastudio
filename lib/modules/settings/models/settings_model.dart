@@ -12,6 +12,8 @@ class SettingsConfig {
   final bool showCashRegister;
   final bool createAttendant;
   final bool trackStock;
+  final bool trackAttendance;
+  final bool trackQueue;
 
   SettingsConfig({
     required this.showDiscount,
@@ -22,6 +24,8 @@ class SettingsConfig {
     required this.showCashRegister,
     required this.createAttendant,
     required this.trackStock,
+    required this.trackAttendance,
+    required this.trackQueue,
     this.printer,
     this.bluetoothPrinter,
     this.screenLock = false,
@@ -39,6 +43,8 @@ class SettingsConfig {
       loading: true,
       createAttendant: db.createAttendant,
       trackStock: db.trackStock,
+      trackAttendance: db.trackAttendance,
+      trackQueue: db.trackQueue,
     );
   }
 
@@ -54,6 +60,8 @@ class SettingsConfig {
     BluetoothDevice? bluetoothPrinter,
     bool? createAttendant,
     bool? trackStock,
+    bool? trackAttendance,
+    bool? trackQueue,
   }) {
     return SettingsConfig(
       showDiscount: showDiscount ?? this.showDiscount,
@@ -69,6 +77,8 @@ class SettingsConfig {
           : null,
       createAttendant: createAttendant ?? this.createAttendant,
       trackStock: trackStock ?? this.trackStock,
+      trackAttendance: trackAttendance ?? this.trackAttendance,
+      trackQueue: trackQueue ?? this.trackQueue,
     );
   }
 }

@@ -62,9 +62,7 @@ class SettingsDetailPage extends ConsumerWidget {
                   padding: EdgeInsets.only(bottom: 12),
                   child: LinearProgressIndicator(color: venaTeal),
                 ),
-
               _sectionTitle('GENERAL'),
-
               _settingTile(
                 icon: Icons.lock_outline_rounded,
                 title: 'Account Privacy',
@@ -72,7 +70,7 @@ class SettingsDetailPage extends ConsumerWidget {
                     '${settingsService.screenLock ? 'Disable' : 'Enable'} password every time you open the app',
                 trailing: CupertinoSwitch(
                   value: settingsService.screenLock,
-                  activeTrackColor: venaTeal,
+                  activeColor: venaTeal,
                   onChanged: (_) {
                     ref
                         .read(settingsServicesProvider.notifier)
@@ -80,10 +78,8 @@ class SettingsDetailPage extends ConsumerWidget {
                   },
                 ),
               ),
-
               if (isAdmin) ...[
                 _sectionTitle('BUSINESS CONTROLS'),
-
                 _settingTile(
                   icon: Icons.discount_outlined,
                   title: 'Discounts',
@@ -91,7 +87,7 @@ class SettingsDetailPage extends ConsumerWidget {
                       '${settingsService.showDiscount ? 'Disable' : 'Enable'} discounts when creating an order',
                   trailing: CupertinoSwitch(
                     value: settingsService.showDiscount,
-                    activeTrackColor: venaTeal,
+                    activeColor: venaTeal,
                     onChanged: (_) {
                       ref
                           .read(settingsServicesProvider.notifier)
@@ -99,7 +95,6 @@ class SettingsDetailPage extends ConsumerWidget {
                     },
                   ),
                 ),
-
                 _settingTile(
                   icon: Icons.payments_outlined,
                   title: 'Pay First',
@@ -107,7 +102,7 @@ class SettingsDetailPage extends ConsumerWidget {
                       '${settingsService.payFirst ? 'Disable' : 'Enable'} pay first option when creating an order',
                   trailing: CupertinoSwitch(
                     value: settingsService.payFirst,
-                    activeTrackColor: venaTeal,
+                    activeColor: venaTeal,
                     onChanged: (_) {
                       ref
                           .read(settingsServicesProvider.notifier)
@@ -115,7 +110,6 @@ class SettingsDetailPage extends ConsumerWidget {
                     },
                   ),
                 ),
-
                 _settingTile(
                   icon: Icons.bar_chart_rounded,
                   title: 'Store Summary',
@@ -123,7 +117,7 @@ class SettingsDetailPage extends ConsumerWidget {
                       '${settingsService.showSummary ? 'Disable' : 'Enable'} the Front-Office to view the store summary',
                   trailing: CupertinoSwitch(
                     value: settingsService.showSummary,
-                    activeTrackColor: venaTeal,
+                    activeColor: venaTeal,
                     onChanged: (_) {
                       ref
                           .read(settingsServicesProvider.notifier)
@@ -131,7 +125,6 @@ class SettingsDetailPage extends ConsumerWidget {
                     },
                   ),
                 ),
-
                 _settingTile(
                   icon: Icons.groups_2_outlined,
                   title: 'Staff Commissions',
@@ -139,7 +132,7 @@ class SettingsDetailPage extends ConsumerWidget {
                       '${settingsService.showCommissions ? 'Disable' : 'Enable'} commissions visibility',
                   trailing: CupertinoSwitch(
                     value: settingsService.showCommissions,
-                    activeTrackColor: venaTeal,
+                    activeColor: venaTeal,
                     onChanged: (_) {
                       ref
                           .read(settingsServicesProvider.notifier)
@@ -147,7 +140,6 @@ class SettingsDetailPage extends ConsumerWidget {
                     },
                   ),
                 ),
-
                 _settingTile(
                   icon: Icons.account_balance_wallet_outlined,
                   title: 'Cash Register',
@@ -155,7 +147,7 @@ class SettingsDetailPage extends ConsumerWidget {
                       '${settingsService.showCashRegister ? 'Disable' : 'Enable'} the Front-Office to view the cash register',
                   trailing: CupertinoSwitch(
                     value: settingsService.showCashRegister,
-                    activeTrackColor: venaTeal,
+                    activeColor: venaTeal,
                     onChanged: (_) {
                       ref
                           .read(settingsServicesProvider.notifier)
@@ -163,7 +155,6 @@ class SettingsDetailPage extends ConsumerWidget {
                     },
                   ),
                 ),
-
                 _settingTile(
                   icon: Icons.person_add_alt_1_outlined,
                   title: 'Create Agent',
@@ -171,7 +162,7 @@ class SettingsDetailPage extends ConsumerWidget {
                       '${settingsService.createAttendant ? 'Disable' : 'Enable'} the Front-Office from creating an agent',
                   trailing: CupertinoSwitch(
                     value: settingsService.createAttendant,
-                    activeTrackColor: venaTeal,
+                    activeColor: venaTeal,
                     onChanged: (_) {
                       ref
                           .read(settingsServicesProvider.notifier)
@@ -179,7 +170,6 @@ class SettingsDetailPage extends ConsumerWidget {
                     },
                   ),
                 ),
-
                 _settingTile(
                   icon: Icons.inventory_2_outlined,
                   title: 'Stock Tracking',
@@ -187,7 +177,7 @@ class SettingsDetailPage extends ConsumerWidget {
                       '${settingsService.trackStock ? 'Disable' : 'Enable'} stock tracking when creating an order',
                   trailing: CupertinoSwitch(
                     value: settingsService.trackStock,
-                    activeTrackColor: venaTeal,
+                    activeColor: venaTeal,
                     onChanged: (_) {
                       ref
                           .read(settingsServicesProvider.notifier)
@@ -195,15 +185,42 @@ class SettingsDetailPage extends ConsumerWidget {
                     },
                   ),
                 ),
+                _settingTile(
+                  icon: Icons.fact_check_outlined,
+                  title: 'Attendance Tracking',
+                  subtitle:
+                      '${settingsService.trackAttendance ? 'Disable' : 'Enable'} attendance-based service assignment',
+                  trailing: CupertinoSwitch(
+                    value: settingsService.trackAttendance,
+                    activeColor: venaTeal,
+                    onChanged: (_) {
+                      ref
+                          .read(settingsServicesProvider.notifier)
+                          .changeTrackAttendance();
+                    },
+                  ),
+                ),
+                _settingTile(
+                  icon: Icons.format_list_numbered_rounded,
+                  title: 'Queue Tracking',
+                  subtitle:
+                      '${settingsService.trackQueue ? 'Disable' : 'Enable'} queue-based service assignment and skip reasons',
+                  trailing: CupertinoSwitch(
+                    value: settingsService.trackQueue,
+                    activeColor: venaTeal,
+                    onChanged: (_) {
+                      ref
+                          .read(settingsServicesProvider.notifier)
+                          .changeTrackQueue();
+                    },
+                  ),
+                ),
               ],
-
               _sectionTitle('DEVICES'),
-
               _settingTile(
                 icon: Icons.print_outlined,
                 title: 'Printer',
-                subtitle:
-                    (settingsService.printer == null &&
+                subtitle: (settingsService.printer == null &&
                         settingsService.bluetoothPrinter == null)
                     ? 'No printer selected'
                     : 'Selected: ${settingsService.printer?.name ?? settingsService.bluetoothPrinter?.name}',
@@ -373,7 +390,6 @@ void showAvailablePrinters(BuildContext context) {
                           ],
                         ),
                       ),
-
                       Flexible(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -381,7 +397,6 @@ void showAvailablePrinters(BuildContext context) {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const _PrinterSectionTitle('Connected'),
-
                               FutureBuilder(
                                 future: Printing.listPrinters(),
                                 builder: (context, snap) {
@@ -422,8 +437,7 @@ void showAvailablePrinters(BuildContext context) {
                                           const NeverScrollableScrollPhysics(),
                                       itemBuilder: (context, index) {
                                         final printer = data[index];
-                                        final bool active =
-                                            printer.model ==
+                                        final bool active = printer.model ==
                                             (activePrinter?.model ?? 'x');
 
                                         return _PrinterTile(
@@ -460,7 +474,6 @@ void showAvailablePrinters(BuildContext context) {
                                   return const SizedBox.shrink();
                                 },
                               ),
-
                               if (Platform.isAndroid) ...[
                                 const SizedBox(height: 14),
                                 const _PrinterSectionTitle('Bluetooth'),
@@ -493,8 +506,8 @@ void showAvailablePrinters(BuildContext context) {
                                               const NeverScrollableScrollPhysics(),
                                           itemBuilder: (context, index) {
                                             final printer = devices[index];
-                                            final bool active =
-                                                printer.address ==
+                                            final bool active = printer
+                                                    .address ==
                                                 (bluetoothPrinter?.address ??
                                                     'xx');
 

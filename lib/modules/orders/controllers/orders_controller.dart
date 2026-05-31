@@ -155,6 +155,38 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
     await _apiService.post('/assign_single.php', body: body);
   }
 
+  Future<void> assignSingleSmart({
+    required SmartServiceAssignmentResult result,
+    required String order,
+    required String cartid,
+  }) async {
+    final user = _user;
+    final cartMap = result.toCartMap();
+
+    final body = {
+      'company_id': user?.shop ?? '',
+      'shop': user?.shop ?? '',
+      'cart_id': cartid,
+      'cart_item_id': cartid,
+      'order_no': order,
+      'order': order,
+      'service_id': '${result.savis.id}',
+      'employee_id': '${result.agent.id}',
+      'employee_name': result.agent.name,
+      'agent_id': '${result.agent.id}',
+      'agent_name': result.agent.name,
+      'assigned_by_id': '${user?.id ?? 0}',
+      'created_by_id': '${user?.id ?? 0}',
+      'assigned_by_name': user?.name ?? '',
+      'created_by_name': user?.name ?? '',
+      'user': user?.name ?? '',
+      'smartAssignment': cartMap['smartAssignment'] ?? '',
+      'assignmentPayload': cartMap['smartAssignment'] ?? '',
+    };
+
+    await _apiService.post('/workforce/smart_assign_existing_service.php', body: body);
+  }
+
   Future<void> removeAddon({
     required String order,
     required String cartid,
@@ -194,7 +226,7 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
         .where((element) => element['id'] == orderId)
         .firstOrNull;
     final cart = savises.map((e) {
-      return jsonEncode({
+      return {
         'cartId': 0,
         'id': e.id,
         'name': e.name,
@@ -211,7 +243,7 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
         'discounted': 10.0,
         'commission': e.commission ?? 0.0,
         'services': [],
-      });
+      };
     }).toList();
     final totalPrice = _calculateTotalPrice(savises);
     final body = {
@@ -221,7 +253,7 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
       'addon_agents': '[]',
       'shop': user?.shop,
       'user': '${user?.id}',
-      'cart': '$cart',
+      'cart': jsonEncode(cart),
       'phone': '',
       'total': totalPrice.toStringAsFixed(2),
       'store': '${order?['store']}',
@@ -264,7 +296,7 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
         .firstOrNull;
 
     final adsrv = addons.map((e) {
-      return jsonEncode({
+      return {
         'id': agents['${e.id}-${e.quantity}']?.id ?? '-1',
         'name': agents['${e.id}-${e.quantity}']?.name ?? '',
         'serviceId': '${e.id}',
@@ -275,12 +307,12 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
         'amount': '${e.amount}',
         'price': e.amount,
         'agents': [],
-      });
+      };
     }).toList();
     final body = {
       'mode': 'After',
       'assign': '1',
-      'cart_addon': '$adsrv',
+      'cart_addon': jsonEncode(adsrv),
       'addon_agents': '[]',
       'shop': user?.shop,
       'user': '${user?.id}',

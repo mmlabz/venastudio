@@ -88,15 +88,17 @@ class UpdateCartNotifier extends StateNotifier<Cart> {
         .where((element) => element['id'].toString() == orderId)
         .firstOrNull;
     final fullItems = List<Map>.from(fullorder?['orderItems'] as List? ?? []);
-    final List<String> cart;
+    final List<Map<String, dynamic>> cart;
     if (fullItems.isNotEmpty) {
+      final allAssigned = state.assigned ?? {};
       cart = state.items.map((e) {
+        final assigned = allAssigned['${e.id}'];
         final fullItem = fullItems.firstWhere(
           (element) => element['id'] == e.id,
           orElse: () => {},
         );
         final discount = num.tryParse(e.discount);
-        return jsonEncode({
+        return {
           'cartId': fullItem['cartId'] ?? 0,
           'id': e.id,
           'name': e.name,
@@ -107,14 +109,16 @@ class UpdateCartNotifier extends StateNotifier<Cart> {
           'price': e.amount,
           'originalPrice': e.amount,
           // 'image': 'https://storage.googleapis.com/shopi_express/receipts/',
-          'agentName': fullItem['agent'] ?? '',
-          'agentId': fullItem['userid'] ?? -1,
+          'agentName': assigned?['agentName'] ?? fullItem['agent'] ?? '',
+          'agentId': assigned?['agentId'] ?? '${fullItem['userid'] ?? -1}',
+          'smartAssignment': assigned?['smartAssignment'] ?? '',
+          'assignmentPayload': assigned?['smartAssignment'] ?? '',
           'type': 'Main',
           'isDiscount': discount != null && discount > 0,
           'discounted': discount,
           // 'commission': e.commission ?? 0.0,
           'services': [],
-        });
+        };
       }).toList();
     } else {
       cart = [];
@@ -130,7 +134,7 @@ class UpdateCartNotifier extends StateNotifier<Cart> {
       // 'addon_agents': '[]',
       'shop': user.shop,
       'user': '${user.name}',
-      'cart': '$cart',
+      'cart': jsonEncode(cart),
       'phone': fullorder?['customer'] ?? '',
       'total': ttp.toStringAsFixed(2),
       'store': fullorder?['store'].toString() ?? '',

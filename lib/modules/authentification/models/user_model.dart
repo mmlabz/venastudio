@@ -56,7 +56,7 @@ class ServiceUser {
       industry: json['industry']?.toString(),
       merchant: json['merchant']?.toString(),
       paybill: json['paybill']?.toString(),
-      storeId: json['storeId']?.toString() ?? json['store_id']?.toString(),
+      storeId: json['storeId']?.toString(),
       payUrl: json['pay_url']?.toString() ?? json['payUrl']?.toString(),
       subscriptionStatus:
           json['subscription_status']?.toString() ??

@@ -710,6 +710,22 @@ class _SigninPageState extends ConsumerState<SigninPage> {
           password: passwordController.text.trim(),
         )
         .then((_) {
+          final auth = ref.read(authenticationServiceProvider);
+          final user = auth.valueOrNull?.user;
+          final localUser = LocalStorage.nosql.user;
+          final activeAgent = LocalStorage.nosql.activeAgent;
+
+          debugPrint('================ LOGIN DEBUG ================');
+          debugPrint('AUTH USER: ${user?.toMap()}');
+          debugPrint('LOCAL USER: ${localUser?.toMap()}');
+          debugPrint('ACTIVE AGENT: $activeAgent');
+          debugPrint('USER ID: ${user?.id}');
+          debugPrint('USER TYPE: ${user?.type}');
+          debugPrint('USER SHOP: ${user?.shop}');
+          debugPrint('USER STORE ID: ${user?.storeId}');
+          debugPrint('USER STORE: ${user?.storeName}');
+          debugPrint('=============================================');
+
           if (mounted) setState(() => isLoading = false);
         })
         .onError((error, stackTrace) {

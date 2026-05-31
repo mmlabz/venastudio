@@ -18,6 +18,8 @@ static const String _savisesKey = 'saviseskey-$_keySuffix';
   static const String _showSummaryKey = 'showsummary-$_keySuffix';
   static const String _showCommissionsKey = 'showcommissions-$_keySuffix';
   static const String _trackStockKey = 'trackstock-$_keySuffix';
+  static const String _trackAttendanceKey = 'trackattendance-$_keySuffix';
+  static const String _trackQueueKey = 'trackqueue-$_keySuffix';
   static const String _createAttendantKey = 'createattendant-$_keySuffix';
 
   static const String _authKey = 'authkey-$_keySuffix';
@@ -241,6 +243,35 @@ bool get isEmployeeSession {
 
   Future<void> updateTrackStock(bool track) async {
     await preferences.setBool(_trackStockKey, track);
+  }
+
+
+  bool get trackAttendance {
+    try {
+      final value = preferences.getBool(_trackAttendanceKey);
+      return value ?? false;
+    } catch (e) {
+      _log.warning(e);
+      return false;
+    }
+  }
+
+  Future<void> updateTrackAttendance(bool track) async {
+    await preferences.setBool(_trackAttendanceKey, track);
+  }
+
+  bool get trackQueue {
+    try {
+      final value = preferences.getBool(_trackQueueKey);
+      return value ?? false;
+    } catch (e) {
+      _log.warning(e);
+      return false;
+    }
+  }
+
+  Future<void> updateTrackQueue(bool track) async {
+    await preferences.setBool(_trackQueueKey, track);
   }
 
   bool get createAttendant {

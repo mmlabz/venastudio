@@ -137,7 +137,7 @@ class CartNotifier extends StateNotifier<Cart> {
 
       final discount = num.tryParse(e.discount);
 
-      return jsonEncode({
+      return {
         'cartId': 0,
         'id': e.id,
         'name': e.name,
@@ -147,14 +147,18 @@ class CartNotifier extends StateNotifier<Cart> {
         'quantity': e.quantity,
         'originalPrice': e.amount,
         'image': 'https://storage.googleapis.com/shopi_express/receipts/',
-        'agentName': mainAgent?.name ?? assigned?['agentName'] ?? '',
-        'agentId': '${mainAgent?.id ?? assigned?['agentId'] ?? -1}',
+        // Service-level assignment wins. Main agent is only a manual legacy fallback.
+        // Never use the logged-in user automatically as the assigned beautician.
+        'agentName': assigned?['agentName'] ?? mainAgent?.name ?? '',
+        'agentId': '${assigned?['agentId'] ?? mainAgent?.id ?? -1}',
+        'smartAssignment': assigned?['smartAssignment'] ?? '',
+        'assignmentPayload': assigned?['smartAssignment'] ?? '',
         'type': 'Main',
         'isDiscount': discount != null && discount > 0,
         'discounted': discount,
         'commission': e.commission ?? 0.0,
         'services': [],
-      });
+      };
     }).toList();
 
     final shop = user.type == SUPERADMIN_TYPE_NAME
@@ -174,8 +178,12 @@ class CartNotifier extends StateNotifier<Cart> {
       'cart_addon': jsonEncode(state.addons),
       'addon_agents': '[]',
       'shop': '${user.shop ?? ''}',
-      'user': '${user.name}',
-      'cart': '$cart',
+      'user': '${user.name ?? ''}',
+      'assigned_by_id': '${user.id}',
+      'created_by_id': '${user.id}',
+      'assigned_by_name': '${user.name ?? ''}',
+      'created_by_name': '${user.name ?? ''}',
+      'cart': jsonEncode(cart),
       'phone': phn,
       'total': totalPrice.toStringAsFixed(2),
       'store': shop,

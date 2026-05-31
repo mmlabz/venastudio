@@ -30,12 +30,11 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     final agentsState = ref.watch(agentsServicesProvider);
     final branches = ref.watch(branchesServicesProvider).value;
     final settings = ref.watch(settingsServicesProvider);
-    final userService = ref.watch(authenticationServiceProvider);
-    final user = userService.valueOrNull?.user;
+    final user = ref.watch(authenticationServiceProvider).valueOrNull?.user;
 
     final showFAB =
         (settings.createAttendant && user?.type == FRONTOFFICE_TYPE_NAME) ||
-        (user?.type == SUPERADMIN_TYPE_NAME);
+            user?.type == SUPERADMIN_TYPE_NAME;
 
     return Scaffold(
       backgroundColor: venaBg,
@@ -65,16 +64,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                 delegate: AgentsSearch(
                   agents: agentsState.value ?? [],
                   branches: branches,
-                  updateAgent: (updatedAgent) {
-                    setState(() {
-                      final index = agentsState.value?.indexWhere(
-                        (agent) => agent.id == updatedAgent.id,
-                      );
-                      if (index != null && index >= 0) {
-                        agentsState.value?[index] = updatedAgent;
-                      }
-                    });
-                  },
+                  updateAgent: (_) => ref.invalidate(agentsServicesProvider),
                 ),
               );
             },
@@ -94,21 +84,24 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         child: agentsState.when(
           loading: () =>
               const Center(child: CircularProgressIndicator(color: venaTeal)),
-          error: (error, stackTrace) => Center(
-            child: Text(
-              'Error: $error',
-              style: const TextStyle(
-                color: venaDanger,
-                fontWeight: FontWeight.w800,
+          error: (error, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Text(
+                'Error: $error',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: venaDanger,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
           data: (agents) => _buildAgentsList(agents, branches),
         ),
       ),
-      floatingActionButtonLocation: showFAB
-          ? FloatingActionButtonLocation.endFloat
-          : null,
+      floatingActionButtonLocation:
+          showFAB ? FloatingActionButtonLocation.endFloat : null,
       floatingActionButton: showFAB ? _floatingBtn() : null,
     );
   }
@@ -155,47 +148,50 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         builder: (context, constraints) {
           final isSmall = constraints.maxWidth < 520;
 
+          final typeDropdown = _buildDropdown(
+            label: 'Type',
+            value: selectedType,
+            items: types,
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => selectedType = value);
+            },
+          );
+
+          final statusDropdown = _buildDropdown(
+            label: 'Status',
+            value: selectedStatus,
+            items: statuses,
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => selectedStatus = value);
+            },
+          );
+
+          final sortDropdown = _buildDropdown(
+            label: 'Sort',
+            value: sortOption,
+            items: sortOptions,
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => sortOption = value);
+            },
+          );
+
           if (isSmall) {
             return Column(
               children: [
                 Row(
                   children: [
-                    Expanded(
-                      child: _buildDropdown(
-                        label: 'Type',
-                        value: selectedType,
-                        items: types,
-                        onChanged: (value) {
-                          setState(() => selectedType = value!);
-                        },
-                      ),
-                    ),
+                    Expanded(child: typeDropdown),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildDropdown(
-                        label: 'Status',
-                        value: selectedStatus,
-                        items: statuses,
-                        onChanged: (value) {
-                          setState(() => selectedStatus = value!);
-                        },
-                      ),
-                    ),
+                    Expanded(child: statusDropdown),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(
-                      child: _buildDropdown(
-                        label: 'Sort',
-                        value: sortOption,
-                        items: sortOptions,
-                        onChanged: (value) {
-                          setState(() => sortOption = value!);
-                        },
-                      ),
-                    ),
+                    Expanded(child: sortDropdown),
                     const SizedBox(width: 8),
                     _sortButton(),
                   ],
@@ -206,38 +202,11 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
 
           return Row(
             children: [
-              Expanded(
-                child: _buildDropdown(
-                  label: 'Type',
-                  value: selectedType,
-                  items: types,
-                  onChanged: (value) {
-                    setState(() => selectedType = value!);
-                  },
-                ),
-              ),
+              Expanded(child: typeDropdown),
               const SizedBox(width: 10),
-              Expanded(
-                child: _buildDropdown(
-                  label: 'Status',
-                  value: selectedStatus,
-                  items: statuses,
-                  onChanged: (value) {
-                    setState(() => selectedStatus = value!);
-                  },
-                ),
-              ),
+              Expanded(child: statusDropdown),
               const SizedBox(width: 10),
-              Expanded(
-                child: _buildDropdown(
-                  label: 'Sort',
-                  value: sortOption,
-                  items: sortOptions,
-                  onChanged: (value) {
-                    setState(() => sortOption = value!);
-                  },
-                ),
-              ),
+              Expanded(child: sortDropdown),
               const SizedBox(width: 10),
               _sortButton(),
             ],
@@ -249,11 +218,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
 
   Widget _sortButton() {
     return InkWell(
-      onTap: () {
-        setState(() {
-          ascending = !ascending;
-        });
-      },
+      onTap: () => setState(() => ascending = !ascending),
       child: Container(
         height: 44,
         width: 44,
@@ -327,7 +292,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   }
 
   List<Agent> _filteredAgents(List<Agent> agents) {
-    List<Agent> filtered = agents;
+    List<Agent> filtered = List<Agent>.from(agents);
 
     if (selectedType != 'ALL') {
       filtered = filtered.where((agent) => agent.type == selectedType).toList();
@@ -343,6 +308,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       final comparison = sortOption == 'A-Z'
           ? a.name.compareTo(b.name)
           : b.name.compareTo(a.name);
+
       return ascending ? comparison : -comparison;
     });
 
@@ -351,9 +317,8 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
 
   Widget _agentCard(Agent agent, List<Map<dynamic, dynamic>>? branches) {
     final isActive = !agent.archived;
-    final initial = agent.name.trim().isNotEmpty
-        ? agent.name.trim()[0].toUpperCase()
-        : 'N';
+    final initial =
+        agent.name.trim().isNotEmpty ? agent.name.trim()[0].toUpperCase() : 'N';
 
     return InkWell(
       onTap: () {
@@ -424,19 +389,14 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
               ],
             ),
             const SizedBox(height: 12),
-            _infoRow(Icons.email_outlined, agent.email),
-            _infoRow(Icons.phone_outlined, agent.phone),
-            _infoRow(Icons.badge_outlined, 'ID: ${agent.userID}'),
-            if (agent.store != null)
-              _infoRow(Icons.storefront_outlined, 'Store: ${agent.store}'),
+            _agentInfoCards(agent),
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                _miniTag('PIN ${agent.pin}'),
+                _miniTag('PIN ••••'),
                 _miniTag(agent.type),
-                _miniTag('Commission ${agent.commission}'),
               ],
             ),
           ],
@@ -465,6 +425,94 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
           fontWeight: FontWeight.w900,
           fontSize: 10,
         ),
+      ),
+    );
+  }
+
+  Widget _agentInfoCards(Agent agent) {
+    final info = <_AgentInfo>[
+      _AgentInfo(Icons.email_outlined, 'Email', agent.email),
+      _AgentInfo(Icons.phone_outlined, 'Phone', agent.phone),
+      _AgentInfo(Icons.badge_outlined, 'National ID', 'ID: ${agent.userID}'),
+      if ((agent.store ?? '').trim().isNotEmpty)
+        _AgentInfo(Icons.storefront_outlined, 'Store', agent.store ?? ''),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 430;
+
+        if (mobile) {
+          return Column(
+            children: info.map((item) {
+              return _infoRow(item.icon, item.value);
+            }).toList(),
+          );
+        }
+
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: info.map((item) {
+            return SizedBox(
+              width: (constraints.maxWidth - 8) / 2,
+              child: _infoCard(item),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _infoCard(_AgentInfo item) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: venaBg.withOpacity(0.58),
+        border: Border.all(color: venaLine),
+      ),
+      child: Row(
+        children: [
+          Container(
+            height: 30,
+            width: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: venaTeal.withOpacity(0.10),
+              border: Border.all(color: venaTeal.withOpacity(0.22)),
+            ),
+            child: Icon(item.icon, size: 15, color: venaTeal),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: venaMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: venaDark,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -532,16 +580,24 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   }
 }
 
-class AgentsSearch extends SearchDelegate {
-  final List<Agent> agents;
-  final Function(Agent) updateAgent;
-  final List<Map<dynamic, dynamic>>? branches;
+class _AgentInfo {
+  const _AgentInfo(this.icon, this.label, this.value);
 
+  final IconData icon;
+  final String label;
+  final String value;
+}
+
+class AgentsSearch extends SearchDelegate {
   AgentsSearch({
     required this.agents,
     required this.updateAgent,
     this.branches,
   });
+
+  final List<Agent> agents;
+  final Function(Agent) updateAgent;
+  final List<Map<dynamic, dynamic>>? branches;
 
   static const Color venaBg = Color(0xffEEF9FB);
   static const Color venaTeal = Color(0xff00BFD8);
@@ -600,10 +656,13 @@ class AgentsSearch extends SearchDelegate {
   }
 
   Widget _buildResults(BuildContext context) {
+    final q = query.toLowerCase().trim();
+
     final results = agents.where((agent) {
-      return agent.name.toLowerCase().contains(query.toLowerCase()) ||
-          agent.email.toLowerCase().contains(query.toLowerCase()) ||
-          agent.phone.toLowerCase().contains(query.toLowerCase());
+      return agent.name.toLowerCase().contains(q) ||
+          agent.email.toLowerCase().contains(q) ||
+          agent.phone.toLowerCase().contains(q) ||
+          (agent.store ?? '').toLowerCase().contains(q);
     }).toList();
 
     if (results.isEmpty) {
@@ -629,9 +688,8 @@ class AgentsSearch extends SearchDelegate {
 
   Widget _agentCard(Agent agent, BuildContext context) {
     final isActive = !agent.archived;
-    final initial = agent.name.trim().isNotEmpty
-        ? agent.name.trim()[0].toUpperCase()
-        : 'N';
+    final initial =
+        agent.name.trim().isNotEmpty ? agent.name.trim()[0].toUpperCase() : 'N';
 
     return InkWell(
       onTap: () {
@@ -741,50 +799,79 @@ class _EditAgentState extends State<EditAgent> {
   static const Color venaMuted = Color(0xff6B8794);
   static const Color venaLine = Color(0xffCFEFF4);
   static const Color venaDanger = Color(0xffD94B4B);
-  static const Color venaSuccess = Color(0xff13A76B);
 
   bool isupdating = false;
   final GlobalKey<FormState> _form = GlobalKey();
 
   late final TextEditingController _cName = TextEditingController(
-    text: widget.agent?.name,
+    text: widget.agent?.name ?? '',
   );
   late final TextEditingController _cEmail = TextEditingController(
-    text: widget.agent?.email,
+    text: widget.agent?.email ?? '',
   );
   late final TextEditingController _cPhone = TextEditingController(
-    text: widget.agent?.phone,
+    text: widget.agent?.phone ?? '',
   );
   late final TextEditingController _cId = TextEditingController(
-    text: widget.agent?.userID.toString(),
+    text: widget.agent?.userID.toString() ?? '',
   );
   late final TextEditingController _cPin = TextEditingController(
-    text: widget.agent?.pin.toString(),
+    text: widget.agent?.pin.toString() ?? '',
   );
   late final TextEditingController _cCommission = TextEditingController(
-    text: widget.agent?.commission.toString(),
+    text: widget.agent?.commission.toString() ?? '',
   );
   late final TextEditingController _cType = TextEditingController(
-    text: widget.agent?.type,
+    text: widget.agent?.type ?? 'Employee',
   );
 
-  late num? shopId = widget.agent?.shop;
+  late num shopId = _toNum(widget.agent?.shop);
 
   late final TextEditingController _cShop = TextEditingController(
-    text: () {
-      final ls = widget.agent?.store;
-      final b = widget.loadedShops
-          ?.where((element) => element['name'] == ls)
-          .firstOrNull;
-      if (b != null) {
-        shopId = b['id'];
-        return b['name'];
-      }
-      return widget.agent?.store;
-    }(),
+    text: _initialShopName(),
   );
 
   late bool archived = widget.agent?.archived ?? false;
+
+  num _toNum(dynamic value) {
+    return num.tryParse(value?.toString() ?? '0') ?? 0;
+  }
+
+  String _initialShopName() {
+    final agentStoreName = widget.agent?.store?.toString() ?? '';
+    final agentBranchId = _toNum(widget.agent?.shop);
+    final shops = widget.loadedShops ?? [];
+
+    for (final shop in shops) {
+      final id = _toNum(shop['id']);
+      final name = shop['name']?.toString() ?? '';
+
+      if (agentBranchId > 0 && id == agentBranchId) {
+        shopId = id;
+        return name;
+      }
+
+      if (agentStoreName.isNotEmpty && name == agentStoreName) {
+        shopId = id;
+        return name;
+      }
+    }
+
+    return agentStoreName;
+  }
+
+  @override
+  void dispose() {
+    _cName.dispose();
+    _cEmail.dispose();
+    _cPhone.dispose();
+    _cId.dispose();
+    _cPin.dispose();
+    _cCommission.dispose();
+    _cType.dispose();
+    _cShop.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -809,58 +896,7 @@ class _EditAgentState extends State<EditAgent> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: venaTeal.withOpacity(0.08),
-                          border: const Border(
-                            bottom: BorderSide(color: venaLine),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              height: 40,
-                              width: 40,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: venaTeal.withOpacity(0.12),
-                                border: Border.all(
-                                  color: venaTeal.withOpacity(0.30),
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.person_add_alt_1_rounded,
-                                color: venaTeal,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                widget.agent == null
-                                    ? 'Add Agent'
-                                    : 'Edit Agent',
-                                style: const TextStyle(
-                                  color: venaDark,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                if (Navigator.of(context).canPop()) {
-                                  Navigator.of(context).pop();
-                                }
-                              },
-                              icon: const Icon(
-                                Icons.close_rounded,
-                                color: venaDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      _header(),
                       Padding(
                         padding: const EdgeInsets.all(16),
                         child: Form(
@@ -873,6 +909,7 @@ class _EditAgentState extends State<EditAgent> {
                               _input(
                                 _cPin,
                                 'Pin',
+                                obscureText: true,
                                 keyboardType: TextInputType.number,
                                 inputFormatters: [
                                   FilteringTextInputFormatter.digitsOnly,
@@ -887,14 +924,20 @@ class _EditAgentState extends State<EditAgent> {
                                 ],
                               ),
                               branchesService.when(
-                                loading: () => const LinearProgressIndicator(
-                                  color: venaTeal,
+                                loading: () => const Padding(
+                                  padding: EdgeInsets.only(bottom: 12),
+                                  child: LinearProgressIndicator(
+                                    color: venaTeal,
+                                  ),
                                 ),
-                                error: (_, __) => const Text(
-                                  'Unable to load shops',
-                                  style: TextStyle(
-                                    color: venaDanger,
-                                    fontWeight: FontWeight.w800,
+                                error: (_, __) => const Padding(
+                                  padding: EdgeInsets.only(bottom: 12),
+                                  child: Text(
+                                    'Unable to load shops',
+                                    style: TextStyle(
+                                      color: venaDanger,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                 ),
                                 data: (data) {
@@ -908,10 +951,13 @@ class _EditAgentState extends State<EditAgent> {
                                       SelectShop.show(context, data).then((
                                         value,
                                       ) {
-                                        if (value != null) {
-                                          shopId = value['id'];
-                                          _cShop.text = value['name'];
-                                        }
+                                        if (value == null) return;
+
+                                        setState(() {
+                                          shopId = _toNum(value['id']);
+                                          _cShop.text =
+                                              value['name']?.toString() ?? '';
+                                        });
                                       });
                                     },
                                   );
@@ -922,7 +968,9 @@ class _EditAgentState extends State<EditAgent> {
                                 'Commission',
                                 keyboardType: TextInputType.number,
                                 inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[0-9.]'),
+                                  ),
                                 ],
                               ),
                               _input(
@@ -930,11 +978,12 @@ class _EditAgentState extends State<EditAgent> {
                                 'User level',
                                 readOnly: true,
                                 suffixIcon: Icons.keyboard_arrow_down_rounded,
-                                onTap: () {
-                                  showUserTypes(context).then((value) {
-                                    if (value != null) {
-                                      _cType.text = value;
-                                    }
+                                onTap: () async {
+                                  final value = await showUserTypes(context);
+                                  if (!mounted || value == null) return;
+
+                                  setState(() {
+                                    _cType.text = value;
                                   });
                                 },
                               ),
@@ -950,61 +999,14 @@ class _EditAgentState extends State<EditAgent> {
                                 value: archived,
                                 activeColor: venaTeal,
                                 onChanged: (value) {
-                                  setState(() {
-                                    archived = value;
-                                  });
+                                  setState(() => archived = value);
                                 },
                               ),
                             ],
                           ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                          border: Border(top: BorderSide(color: venaLine)),
-                        ),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 46,
-                          child: TextButton(
-                            onPressed: isupdating
-                                ? null
-                                : () {
-                                    if (_form.currentState!.validate()) {
-                                      setState(() {
-                                        isupdating = true;
-                                      });
-                                      _update(ref);
-                                    }
-                                  },
-                            style: TextButton.styleFrom(
-                              backgroundColor: venaTeal,
-                              foregroundColor: Colors.white,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.zero,
-                              ),
-                            ),
-                            child: isupdating
-                                ? const SizedBox(
-                                    height: 18,
-                                    width: 18,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Text(
-                                    widget.agent == null
-                                        ? 'ADD AGENT'
-                                        : 'UPDATE AGENT',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ),
+                      _footer(ref),
                     ],
                   ),
                 ),
@@ -1016,10 +1018,96 @@ class _EditAgentState extends State<EditAgent> {
     );
   }
 
+  Widget _header() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: venaTeal.withOpacity(0.08),
+        border: const Border(bottom: BorderSide(color: venaLine)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            height: 40,
+            width: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: venaTeal.withOpacity(0.12),
+              border: Border.all(color: venaTeal.withOpacity(0.30)),
+            ),
+            child: const Icon(Icons.person_add_alt_1_rounded, color: venaTeal),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              widget.agent == null ? 'Add Agent' : 'Edit Agent',
+              style: const TextStyle(
+                color: venaDark,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+            icon: const Icon(Icons.close_rounded, color: venaDark),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _footer(WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: venaLine)),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 46,
+        child: TextButton(
+          onPressed: isupdating
+              ? null
+              : () {
+                  if (_form.currentState!.validate()) {
+                    _update(ref);
+                  }
+                },
+          style: TextButton.styleFrom(
+            backgroundColor: venaTeal,
+            foregroundColor: Colors.white,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
+            ),
+          ),
+          child: isupdating
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  widget.agent == null ? 'ADD AGENT' : 'UPDATE AGENT',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+        ),
+      ),
+    );
+  }
+
   Widget _input(
     TextEditingController controller,
     String label, {
     bool readOnly = false,
+    bool obscureText = false,
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     IconData? suffixIcon,
@@ -1030,9 +1118,18 @@ class _EditAgentState extends State<EditAgent> {
       child: TextFormField(
         controller: controller,
         readOnly: readOnly,
+        obscureText: obscureText,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        validator: (value) => (value?.isEmpty ?? true) ? '' : null,
+        validator: (value) {
+          if ((value?.trim().isEmpty ?? true)) return 'Required';
+
+          if (label == 'Email' && !(value?.contains('@') ?? false)) {
+            return 'Invalid email';
+          }
+
+          return null;
+        },
         onTap: onTap,
         style: const TextStyle(color: venaDark, fontWeight: FontWeight.w800),
         decoration: InputDecoration(
@@ -1067,100 +1164,120 @@ class _EditAgentState extends State<EditAgent> {
   }
 
   void _update(WidgetRef ref) {
-    final theme = ref.watch(themeServicesProvider);
+    if (shopId <= 0) {
+      final theme = ref.read(themeServicesProvider);
+      context.showToast(
+        'Please select a shop',
+        textColor: theme.textIconPrimaryColor,
+        error: true,
+      );
+      return;
+    }
+
+    setState(() => isupdating = true);
+
+    final theme = ref.read(themeServicesProvider);
+
     final newAgent = Agent(
       id: widget.agent?.id ?? 0,
-      name: _cName.text,
-      email: _cEmail.text,
-      phone: _cPhone.text,
+      name: _cName.text.trim(),
+      email: _cEmail.text.trim(),
+      phone: _cPhone.text.trim(),
       archived: archived,
-      pin: num.tryParse(_cPin.text) ?? 0,
-      commission: num.tryParse(_cCommission.text) ?? 0,
-      shop: shopId ?? 0,
-      userID: num.tryParse(_cId.text) ?? 0,
-      type: _cType.text,
-      store: _cShop.text,
+      pin: num.tryParse(_cPin.text.trim()) ?? 0,
+      commission: num.tryParse(_cCommission.text.trim()) ?? 0,
+      shop: shopId,
+      userID: num.tryParse(_cId.text.trim()) ?? 0,
+      type: _cType.text.trim(),
+      store: _cShop.text.trim(),
     );
 
-    if (widget.agent != null) {
-      ref
-          .read(agentsServicesProvider.notifier)
-          .update(agent: newAgent, shop: _cShop.text)
-          .then((value) {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop('200');
-            }
-            ref.invalidate(agentsServicesProvider);
-            context.showToast(
-              'Agent updated',
-              textColor: theme.textIconPrimaryColor,
-            );
-          })
-          .onError((error, stackTrace) {
-            setState(() {
-              isupdating = false;
-            });
-          });
-    } else {
-      ref
-          .read(agentsServicesProvider.notifier)
-          .add(agent: newAgent, shop: _cShop.text)
-          .then((value) {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop('200');
-            }
-            ref.invalidate(agentsServicesProvider);
-            context.showToast(
-              'Agent updated',
-              textColor: theme.textIconPrimaryColor,
-            );
-          })
-          .onError((error, stackTrace) {
-            setState(() {
-              isupdating = false;
-            });
-          });
-    }
+    final Future<void> action = widget.agent != null
+        ? ref
+            .read(agentsServicesProvider.notifier)
+            .update(agent: newAgent, shop: _cShop.text.trim())
+        : ref
+            .read(agentsServicesProvider.notifier)
+            .add(agent: newAgent, shop: _cShop.text.trim());
+
+    action.then((_) {
+      if (!mounted) return;
+
+      Navigator.of(context).pop('200');
+      ref.invalidate(agentsServicesProvider);
+
+      context.showToast(
+        widget.agent == null ? 'Agent added' : 'Agent updated',
+        textColor: theme.textIconPrimaryColor,
+      );
+    }).onError((error, stackTrace) {
+      if (!mounted) return;
+
+      setState(() => isupdating = false);
+
+      context.showToast(
+        'Unable to save agent',
+        textColor: theme.textIconPrimaryColor,
+        error: true,
+      );
+    });
   }
 
   Future<String?> showUserTypes(BuildContext context) {
-    final levels = ['Employee', 'FrontOffice', 'SuperAdmin'];
+    final levels = <String>[
+      'Employee',
+      'FrontOffice',
+      'SuperAdmin',
+    ];
 
-    return showDialog<String>(
+    return showModalBottomSheet<String>(
       context: context,
-      builder: (_) {
-        return Center(
-          child: SizedBox(
-            width: 320,
-            child: Material(
+      useRootNavigator: false,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
               color: Colors.white,
-              child: Container(
-                decoration: BoxDecoration(border: Border.all(color: venaLine)),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: levels.map((level) {
-                    return InkWell(
-                      onTap: () {
-                        Navigator.of(context).pop(level);
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                          border: Border(bottom: BorderSide(color: venaLine)),
-                        ),
-                        child: Text(
-                          level,
-                          style: const TextStyle(
-                            color: venaDark,
-                            fontWeight: FontWeight.w900,
+              border: Border.all(color: venaLine),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: levels.map((level) {
+                final selected = _cType.text.trim() == level;
+
+                return InkWell(
+                  onTap: () {
+                    Navigator.of(sheetContext).pop(level);
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      border: Border(bottom: BorderSide(color: venaLine)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            level,
+                            style: TextStyle(
+                              color: selected ? venaTeal : venaDark,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
+                        if (selected)
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: venaTeal,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         );

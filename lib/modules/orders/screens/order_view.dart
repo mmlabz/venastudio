@@ -5,8 +5,15 @@ void showOrderViewSnack(
   String message, {
   bool error = false,
 }) {
-  ScaffoldMessenger.of(context).clearSnackBars();
-  ScaffoldMessenger.of(context).showSnackBar(
+  final messenger = ScaffoldMessenger.maybeOf(context);
+
+  if (messenger == null) {
+    debugPrint('ORDER VIEW SNACK MISSED: $message');
+    return;
+  }
+
+  messenger.clearSnackBars();
+  messenger.showSnackBar(
     SnackBar(
       content: Text(message),
       backgroundColor: error ? Colors.red : Colors.black87,
@@ -14,6 +21,26 @@ void showOrderViewSnack(
       duration: const Duration(seconds: 2),
     ),
   );
+}
+
+void closeOrderDialogSafely(BuildContext context) {
+  final navigator = Navigator.of(context, rootNavigator: true);
+
+  if (navigator.canPop()) {
+    navigator.pop();
+  }
+}
+
+void logOrderViewError(
+  String label,
+  Object error,
+  StackTrace stackTrace,
+) {
+  debugPrint('================ $label ================');
+  debugPrint('ERROR TYPE: ${error.runtimeType}');
+  debugPrint('ERROR: $error');
+  debugPrintStack(stackTrace: stackTrace);
+  debugPrint('====================================================');
 }
 
 class OrderView extends ConsumerWidget {
@@ -28,17 +55,21 @@ class OrderView extends ConsumerWidget {
   final bool readonly;
   final bool insearch;
 
-  static show(
+  static Future<T?> show<T>(
     BuildContext context,
     num id, {
     bool readonly = false,
     bool insearch = false,
   }) {
-    return showDialog(
+    return showDialog<T>(
       context: context,
       useRootNavigator: SrceenType.type(context.sz).isMobile,
       builder: (_) {
-        return OrderView(id: id, readonly: readonly, insearch: insearch);
+        return OrderView(
+          id: id,
+          readonly: readonly,
+          insearch: insearch,
+        );
       },
     );
   }
@@ -54,19 +85,323 @@ class OrderView extends ConsumerWidget {
         LocalStorage.nosql.user;
   }
 
+  bool _isInService(dynamic order) {
+    return order['status']?.toString() == 'In-Service';
+  }
+
+  List<dynamic> _addonsOf(dynamic item) {
+    final addons = item['addons'];
+
+    if (addons is List) {
+      return addons;
+    }
+
+    return const [];
+  }
+
+  Future<void> _assignServiceAgent({
+    required BuildContext context,
+    required WidgetRef ref,
+    required dynamic order,
+    required dynamic item,
+    required dynamic value,
+  }) async {
+    try {
+      debugPrint(
+        'ASSIGN SINGLE SMART PAYLOAD => '
+        'order=${order['billno']}, '
+        'cartid=${item['cartid']}, '
+        'agentId=${value.agent.id}, '
+        'agentName=${value.agent.name}',
+      );
+
+      await ref.read(orderServicesProvider.notifier).assignSingleSmart(
+            result: value,
+            order: order['billno'],
+            cartid: item['cartid'].toString(),
+          );
+
+      ref.invalidate(orderServicesProvider);
+
+      if (!context.mounted) return;
+
+      showOrderViewSnack(
+        context,
+        '${value.agent.name} assigned to service',
+      );
+
+      closeOrderDialogSafely(context);
+    } catch (error, stackTrace) {
+      logOrderViewError(
+        'ASSIGN SERVICE AGENT ERROR',
+        error,
+        stackTrace,
+      );
+
+      if (!context.mounted) return;
+
+      showOrderViewSnack(
+        context,
+        'Failed to assign agent. Check console logs.',
+        error: true,
+      );
+    }
+  }
+
+  Future<void> _reassignWholeOrder({
+    required BuildContext context,
+    required WidgetRef ref,
+    required dynamic order,
+    required dynamic value,
+  }) async {
+    try {
+      debugPrint(
+        'REASSIGN ORDER PAYLOAD => '
+        'order=${order['billno']}, '
+        'orderid=${order['id']}, '
+        'agentId=${value.id}, '
+        'agentName=${value.name}',
+      );
+
+      await ref.read(orderServicesProvider.notifier).assignAgent(
+            agent: value,
+            billno: order['billno'],
+            orderid: order['id'],
+          );
+
+      ref.invalidate(orderServicesProvider);
+
+      if (!context.mounted) return;
+
+      showOrderViewSnack(
+        context,
+        '${value.name} assigned to order',
+      );
+
+      closeOrderDialogSafely(context);
+    } catch (error, stackTrace) {
+      logOrderViewError(
+        'REASSIGN WHOLE ORDER ERROR',
+        error,
+        stackTrace,
+      );
+
+      if (!context.mounted) return;
+
+      showOrderViewSnack(
+        context,
+        'Failed to reassign order. Check console logs.',
+        error: true,
+      );
+    }
+  }
+
+  Future<void> _removeAddon({
+    required BuildContext context,
+    required WidgetRef ref,
+    required dynamic order,
+    required dynamic item,
+    required dynamic addon,
+  }) async {
+    try {
+      await ref.read(orderServicesProvider.notifier).removeAddon(
+            order: order['billno'],
+            cartid: item['cartid'].toString(),
+            addonid: addon['id'].toString(),
+          );
+
+      ref.invalidate(orderServicesProvider);
+
+      if (!context.mounted) return;
+
+      showOrderViewSnack(context, 'Addon removed');
+      closeOrderDialogSafely(context);
+    } catch (error, stackTrace) {
+      logOrderViewError(
+        'REMOVE ADDON ERROR',
+        error,
+        stackTrace,
+      );
+
+      if (!context.mounted) return;
+
+      showOrderViewSnack(
+        context,
+        'Failed to remove addon',
+        error: true,
+      );
+    }
+  }
+
+  Future<void> _rescheduleOrder({
+    required BuildContext context,
+    required WidgetRef ref,
+    required dynamic order,
+  }) async {
+    final date = await showDatePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      lastDate: DateTime(2030),
+    );
+
+    if (date == null || !context.mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (time == null || !context.mounted) return;
+
+    final newDate = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+
+    try {
+      await ref.read(orderServicesProvider.notifier).rescheduleOrder(
+            date: newDate,
+            order: order['billno'],
+          );
+
+      ref.invalidate(orderServicesProvider);
+
+      if (!context.mounted) return;
+
+      showOrderViewSnack(
+        context,
+        'Order rescheduled to ${sDate3(newDate)}',
+      );
+
+      closeOrderDialogSafely(context);
+    } catch (error, stackTrace) {
+      logOrderViewError(
+        'RESCHEDULE ORDER ERROR',
+        error,
+        stackTrace,
+      );
+
+      if (!context.mounted) return;
+
+      showOrderViewSnack(
+        context,
+        'Error rescheduling',
+        error: true,
+      );
+    }
+  }
+
+  void _goToUpdateOrder(BuildContext context, dynamic order) {
+    final orderId = order['id'];
+
+    closeOrderDialogSafely(context);
+
+    Future.microtask(() {
+      if (context.mounted) {
+        context.push('/orders/update_order/$orderId');
+      }
+    });
+  }
+
+  void _goToAddAddon(BuildContext context, dynamic order, dynamic item) {
+    final orderId = order['id'];
+    final itemId = item['id'];
+
+    closeOrderDialogSafely(context);
+
+    Future.microtask(() {
+      if (context.mounted) {
+        context.push('/orders/add_addons/$orderId/$itemId');
+      }
+    });
+  }
+
+  void _goToAddService(BuildContext context, dynamic order) {
+    final orderId = order['id'];
+
+    closeOrderDialogSafely(context);
+
+    Future.microtask(() {
+      if (context.mounted) {
+        context.push('/orders/add_service/$orderId');
+      }
+    });
+  }
+
+  Future<void> _pickAndAssignServiceAgent({
+    required BuildContext context,
+    required WidgetRef ref,
+    required dynamic order,
+    required dynamic item,
+    required dynamic settingsService,
+    required List<Agent> agents,
+  }) async {
+    final value = await SmartAssignmentBridge.pickResult(
+      context,
+      settings: settingsService,
+      agents: agents,
+      serviceLike: item,
+      orderNo: '${order['billno'] ?? ''}',
+      cartId: '${item['cartid'] ?? ''}',
+      existingOrderMode: true,
+    );
+
+    if (value == null || !context.mounted) return;
+
+    await _assignServiceAgent(
+      context: context,
+      ref: ref,
+      order: order,
+      item: item,
+      value: value,
+    );
+  }
+
+  Future<void> _pickAndReassignWholeOrder({
+    required BuildContext context,
+    required WidgetRef ref,
+    required dynamic order,
+    required dynamic settingsService,
+    required List<Agent> agents,
+  }) async {
+    final value = await SmartAssignmentBridge.pickAgent(
+      context,
+      settings: settingsService,
+      agents: agents,
+      serviceLike: order,
+      orderNo: '${order['billno'] ?? ''}',
+      cartId: '${order['id'] ?? ''}',
+      existingOrderMode: true,
+    );
+
+    if (value == null || !context.mounted) return;
+
+    await _reassignWholeOrder(
+      context: context,
+      ref: ref,
+      order: order,
+      value: value,
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeServicesProvider);
     final allorders = ref.watch(orderServicesProvider);
     final agentsService = ref.watch(agentsServicesProvider);
+    final settingsService = ref.watch(settingsServicesProvider);
     final user = _currentUser(ref);
 
     final bool isFrontOffice = user?.type == FRONTOFFICE_TYPE_NAME;
     final bool canManageOrder = isFrontOffice && !readonly;
 
-    final order = allorders.orders
-        .where((element) => element['id'] == id)
-        .firstOrNull;
+    final order = allorders.orders.where((element) {
+      return element['id'] == id;
+    }).firstOrNull;
 
     if (order == null) {
       return noorder(ref, theme);
@@ -74,9 +409,10 @@ class OrderView extends ConsumerWidget {
 
     final size = context.sz;
     final maxWidth = getMaxWidth(size.width);
-    final items = List.from(order['orderItems'] ?? []);
+    final items = List<dynamic>.from(order['orderItems'] ?? const []);
 
-    final bool showReassign = order['status'] == 'In-Service' && canManageOrder;
+    final bool showReassign =
+        _isInService(order) && canManageOrder && !settingsService.trackStock;
 
     return Center(
       child: Padding(
@@ -112,15 +448,15 @@ class OrderView extends ConsumerWidget {
                           ),
                         ),
                         IconButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          icon: Icon(Icons.close, color: theme.defultColor),
+                          onPressed: () => closeOrderDialogSafely(context),
+                          icon: Icon(
+                            Icons.close,
+                            color: theme.defultColor,
+                          ),
                         ),
                       ],
                     ),
                   ),
-
                   ConstrainedBox(
                     constraints: BoxConstraints(
                       maxHeight: size.height / 2,
@@ -133,14 +469,19 @@ class OrderView extends ConsumerWidget {
                             shrinkWrap: true,
                             itemBuilder: (context, index) {
                               final item = items[index];
+                              final addons = _addonsOf(item);
 
                               return Card(
                                 color: theme.inactiveTextIconColor,
                                 clipBehavior: Clip.hardEdge,
                                 child: ExpansionTile(
-                                  title: _orderTitle(item, theme),
+                                  title: _orderTitle(
+                                    item,
+                                    theme,
+                                    addons,
+                                  ),
                                   children: [
-                                    if ((item['addons'] as List).isNotEmpty)
+                                    if (addons.isNotEmpty)
                                       Container(
                                         margin: const EdgeInsets.all(16),
                                         alignment: Alignment.centerLeft,
@@ -156,85 +497,40 @@ class OrderView extends ConsumerWidget {
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
-                                          children: [
-                                            ...(item['addons'] as List).map(
-                                              (e) => ListTile(
-                                                title: Text(
-                                                  '${e['name']} ~> ${e['agent']}',
-                                                ),
-                                                subtitle: Text(
-                                                  (num.tryParse(
-                                                            e['price']
-                                                                .toString(),
-                                                          ) ??
-                                                          0)
-                                                      .toDouble()
-                                                      .money,
-                                                ),
-                                                trailing: canManageOrder
-                                                    ? IconButton(
-                                                        onPressed: () {
-                                                          ref
-                                                              .read(
-                                                                orderServicesProvider
-                                                                    .notifier,
-                                                              )
-                                                              .removeAddon(
-                                                                order:
-                                                                    order['billno'],
-                                                                cartid: item['cartid']
-                                                                    .toString(),
-                                                                addonid: e['id']
-                                                                    .toString(),
-                                                              )
-                                                              .then((_) {
-                                                                if (Navigator.of(
-                                                                  context,
-                                                                ).canPop()) {
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).pop();
-                                                                }
-
-                                                                if (Navigator.of(
-                                                                  context,
-                                                                ).canPop()) {
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).pop();
-                                                                }
-
-                                                                ref.invalidate(
-                                                                  orderServicesProvider,
-                                                                );
-
-                                                                showOrderViewSnack(
-                                                                  context,
-                                                                  'Addon removed',
-                                                                );
-                                                              })
-                                                              .onError((
-                                                                error,
-                                                                stackTrace,
-                                                              ) {
-                                                                showOrderViewSnack(
-                                                                  context,
-                                                                  'Failed to remove addon',
-                                                                  error: true,
-                                                                );
-                                                              });
-                                                        },
-                                                        icon: const Icon(
-                                                          Icons.close,
-                                                        ),
-                                                      )
-                                                    : null,
+                                          children: addons.map((addon) {
+                                            return ListTile(
+                                              title: Text(
+                                                '${addon['name']} ~> ${addon['agent']}',
                                               ),
-                                            ),
-                                          ],
+                                              subtitle: Text(
+                                                (num.tryParse(
+                                                          addon['price']
+                                                              .toString(),
+                                                        ) ??
+                                                        0)
+                                                    .toDouble()
+                                                    .money,
+                                              ),
+                                              trailing: canManageOrder
+                                                  ? IconButton(
+                                                      onPressed: () {
+                                                        _removeAddon(
+                                                          context: context,
+                                                          ref: ref,
+                                                          order: order,
+                                                          item: item,
+                                                          addon: addon,
+                                                        );
+                                                      },
+                                                      icon: const Icon(
+                                                        Icons.close,
+                                                      ),
+                                                    )
+                                                  : null,
+                                            );
+                                          }).toList(),
                                         ),
                                       ),
-
                                     if (canManageOrder)
                                       Padding(
                                         padding: const EdgeInsets.all(8.0),
@@ -242,71 +538,29 @@ class OrderView extends ConsumerWidget {
                                           children: [
                                             Expanded(
                                               child: TextButton(
-                                                onPressed: () {
+                                                onPressed: () async {
                                                   if (agentsService
-                                                      is AsyncData) {
-                                                    final agents =
-                                                        agentsService.value ??
-                                                        [];
-
-                                                    PickAgent.show(
+                                                      is! AsyncData) {
+                                                    showOrderViewSnack(
                                                       context,
-                                                      agents,
-                                                    ).then((value) {
-                                                      if (value != null) {
-                                                        ref
-                                                            .read(
-                                                              orderServicesProvider
-                                                                  .notifier,
-                                                            )
-                                                            .assignSingleAgent(
-                                                              agent: value,
-                                                              order:
-                                                                  order['billno'],
-                                                              cartid:
-                                                                  item['cartid']
-                                                                      .toString(),
-                                                            )
-                                                            .then((_) {
-                                                              if (insearch &&
-                                                                  Navigator.of(
-                                                                    context,
-                                                                  ).canPop()) {
-                                                                Navigator.of(
-                                                                  context,
-                                                                ).pop();
-                                                              }
-
-                                                              if (Navigator.of(
-                                                                context,
-                                                              ).canPop()) {
-                                                                Navigator.of(
-                                                                  context,
-                                                                ).pop();
-                                                              }
-
-                                                              ref.invalidate(
-                                                                orderServicesProvider,
-                                                              );
-
-                                                              showOrderViewSnack(
-                                                                context,
-                                                                '${value.name} assigned to order',
-                                                              );
-                                                            })
-                                                            .onError((
-                                                              error,
-                                                              stackTrace,
-                                                            ) {
-                                                              showOrderViewSnack(
-                                                                context,
-                                                                'Failed to assign agent',
-                                                                error: true,
-                                                              );
-                                                            });
-                                                      }
-                                                    });
+                                                      'Agents are still loading',
+                                                      error: true,
+                                                    );
+                                                    return;
                                                   }
+
+                                                  final agents =
+                                                      agentsService.value ?? [];
+
+                                                  await _pickAndAssignServiceAgent(
+                                                    context: context,
+                                                    ref: ref,
+                                                    order: order,
+                                                    item: item,
+                                                    settingsService:
+                                                        settingsService,
+                                                    agents: agents,
+                                                  );
                                                 },
                                                 child: Text(
                                                   'Assign',
@@ -319,17 +573,10 @@ class OrderView extends ConsumerWidget {
                                             Expanded(
                                               child: TextButton(
                                                 onPressed: () {
-                                                  if (insearch &&
-                                                      Navigator.of(
-                                                        context,
-                                                      ).canPop()) {
-                                                    Navigator.of(context).pop();
-                                                  }
-
-                                                  Navigator.of(context).pop();
-
-                                                  context.push(
-                                                    '/orders/add_addons/${order['id']}/${item['id']}',
+                                                  _goToAddAddon(
+                                                    context,
+                                                    order,
+                                                    item,
                                                   );
                                                 },
                                                 child: Text(
@@ -355,7 +602,6 @@ class OrderView extends ConsumerWidget {
                             ),
                           ),
                   ),
-
                   if (canManageOrder)
                     Padding(
                       padding: EdgeInsets.only(
@@ -368,9 +614,7 @@ class OrderView extends ConsumerWidget {
                           Expanded(
                             child: TextButton(
                               onPressed: () {
-                                context
-                                  ..pop()
-                                  ..push('/orders/update_order/${order['id']}');
+                                _goToUpdateOrder(context, order);
                               },
                               style: TextButton.styleFrom(
                                 foregroundColor: theme.primaryBackGround,
@@ -386,62 +630,26 @@ class OrderView extends ConsumerWidget {
                           if (showReassign)
                             Expanded(
                               child: TextButton(
-                                onPressed: () {
-                                  if (agentsService is AsyncData) {
-                                    final agents = agentsService.value ?? [];
-
-                                    PickAgent.show(context, agents).then((
-                                      value,
-                                    ) {
-                                      if (value != null) {
-                                        ref
-                                            .read(
-                                              orderServicesProvider.notifier,
-                                            )
-                                            .assignAgent(
-                                              agent: value,
-                                              billno: order['billno'],
-                                              orderid: order['id'],
-                                            )
-                                            .then((_) {
-                                              if (insearch &&
-                                                  Navigator.of(
-                                                    context,
-                                                  ).canPop()) {
-                                                Navigator.of(context).pop();
-                                              }
-
-                                              if (Navigator.of(
-                                                context,
-                                              ).canPop()) {
-                                                Navigator.of(context).pop();
-                                              }
-
-                                              if (Navigator.of(
-                                                context,
-                                              ).canPop()) {
-                                                Navigator.of(context).pop();
-                                              }
-
-                                              ref.invalidate(
-                                                orderServicesProvider,
-                                              );
-
-                                              showOrderViewSnack(
-                                                context,
-                                                '${value.name} assigned to order',
-                                              );
-                                            })
-                                            .onError((error, stackTrace) {
-                                              showOrderViewSnack(
-                                                context,
-                                                'Failed to reassign order',
-                                                error: true,
-                                              );
-                                            });
-                                      }
-                                    });
+                                onPressed: () async {
+                                  if (agentsService is! AsyncData) {
+                                    showOrderViewSnack(
+                                      context,
+                                      'Agents are still loading',
+                                      error: true,
+                                    );
+                                    return;
                                   }
+
+                                  final agents =
+                                      (agentsService.value ?? []).cast<Agent>();
+
+                                  await _pickAndReassignWholeOrder(
+                                    context: context,
+                                    ref: ref,
+                                    order: order,
+                                    settingsService: settingsService,
+                                    agents: agents,
+                                  );
                                 },
                                 style: TextButton.styleFrom(
                                   foregroundColor: theme.primaryBackGround,
@@ -456,7 +664,6 @@ class OrderView extends ConsumerWidget {
                         ],
                       ),
                     ),
-
                   if (canManageOrder)
                     Padding(
                       padding: const EdgeInsets.only(
@@ -467,61 +674,11 @@ class OrderView extends ConsumerWidget {
                       ),
                       child: TextButton(
                         onPressed: () {
-                          showDatePicker(
+                          _rescheduleOrder(
                             context: context,
-                            firstDate: DateTime.now(),
-                            initialDate: DateTime.now().add(
-                              const Duration(days: 1),
-                            ),
-                            lastDate: DateTime(2030),
-                          ).then((date) {
-                            if (date != null) {
-                              showTimePicker(
-                                context: context,
-                                initialTime: TimeOfDay.now(),
-                              ).then((time) {
-                                if (time != null) {
-                                  final newDate = DateTime(
-                                    date.year,
-                                    date.month,
-                                    date.day,
-                                    time.hour,
-                                    time.minute,
-                                  );
-
-                                  ref
-                                      .read(orderServicesProvider.notifier)
-                                      .rescheduleOrder(
-                                        date: newDate,
-                                        order: order['billno'],
-                                      )
-                                      .then((_) {
-                                        if (Navigator.of(context).canPop()) {
-                                          Navigator.of(context).pop();
-                                        }
-
-                                        if (Navigator.of(context).canPop()) {
-                                          Navigator.of(context).pop();
-                                        }
-
-                                        ref.invalidate(orderServicesProvider);
-
-                                        showOrderViewSnack(
-                                          context,
-                                          'Order rescheduled to ${sDate3(newDate)}',
-                                        );
-                                      })
-                                      .onError((error, stackTrace) {
-                                        showOrderViewSnack(
-                                          context,
-                                          'Error rescheduling',
-                                          error: true,
-                                        );
-                                      });
-                                }
-                              });
-                            }
-                          });
+                            ref: ref,
+                            order: order,
+                          );
                         },
                         style: TextButton.styleFrom(
                           foregroundColor: theme.primaryBackGround,
@@ -531,8 +688,7 @@ class OrderView extends ConsumerWidget {
                         child: const Text('Re - Schedule'),
                       ),
                     ),
-
-                  if (order['status'] == 'In-Service' && canManageOrder)
+                  if (_isInService(order) && canManageOrder)
                     Padding(
                       padding: const EdgeInsets.only(
                         left: 16,
@@ -541,13 +697,7 @@ class OrderView extends ConsumerWidget {
                       ),
                       child: TextButton(
                         onPressed: () {
-                          if (insearch && Navigator.of(context).canPop()) {
-                            Navigator.of(context).pop();
-                          }
-
-                          Navigator.of(context).pop();
-
-                          context.push('/orders/add_service/${order['id']}');
+                          _goToAddService(context, order);
                         },
                         style: TextButton.styleFrom(
                           backgroundColor: theme.primaryBackGround,
@@ -566,12 +716,13 @@ class OrderView extends ConsumerWidget {
     );
   }
 
-  Column _orderTitle(dynamic item, ThemeConfig theme) {
-    final agentName = item['agent'].toString().isNotEmpty
-        ? item['agent']
-        : '___ ___';
-
-    final addons = item['addons'] as List;
+  Column _orderTitle(
+    dynamic item,
+    ThemeConfig theme,
+    List<dynamic> addons,
+  ) {
+    final rawAgentName = item['agent']?.toString() ?? '';
+    final agentName = rawAgentName.trim().isNotEmpty ? rawAgentName : '___ ___';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -591,7 +742,7 @@ class OrderView extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item['name'],
+                    item['name']?.toString() ?? '',
                     maxLines: 3,
                     style: TextStyle(color: theme.defultColor),
                   ),
@@ -608,7 +759,7 @@ class OrderView extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  'Quantity: ${item['items']}',
+                  'Quantity: ${item['items'] ?? 0}',
                   style: TextStyle(color: theme.defultColor),
                 ),
                 Text(
@@ -623,29 +774,33 @@ class OrderView extends ConsumerWidget {
     );
   }
 
-  Widget noorder(WidgetRef ref, ThemeConfig theme) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(20),
-      child: Material(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 200,
-                child: emptyState(ref, text: 'No orders found'),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Order Unavailable',
-                style: TextStyle(color: theme.defultColor),
-              ),
-            ],
+  Widget noorder(WidgetRef ref, ThemeConfig theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Material(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 200,
+                  child: emptyState(ref, text: 'No orders found'),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Order Unavailable',
+                  style: TextStyle(color: theme.defultColor),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

@@ -3,6 +3,7 @@ export 'controllers/cart_controller.dart';
 export 'controllers/comms_controller.dart';
 export 'controllers/expense_controller.dart';
 export 'controllers/summary_controller.dart';
+export 'controllers/finance_controller.dart';
 
 export 'models/service_model.dart';
 export 'models/state_model.dart';
@@ -24,3 +25,11 @@ export 'screens/cart_client_sect.dart';
 export 'screens/cart_items_sect.dart';
 export 'screens/create_order.dart';
 export 'screens/pay_first.dart';
+
+export 'screens/smart_service_assignment.dart';
+
+export 'screens/expenses_page.dart';
+export 'screens/finance_setup_page.dart';
+
+export 'screens/cash_reconciliation_page.dart';
+export 'screens/smart_assignment_bridge.dart';

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:venastudio/common.dart';
 
 class WelcomeRedirectPage extends StatefulWidget {

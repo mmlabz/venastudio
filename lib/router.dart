@@ -5,9 +5,8 @@ final appRouterProvider = Provider((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
   final shellNavigatorKey = GlobalKey<NavigatorState>();
   return GoRouter(
-    initialLocation: LocalStorage.nosql.screenLock
-        ? '/customer_screen?isAgent=true'
-        : '/',
+    initialLocation:
+        LocalStorage.nosql.screenLock ? '/customer_screen?isAgent=true' : '/',
     navigatorKey: rootNavigatorKey,
     refreshListenable: routeService,
     redirect: routeService.handleRedirect,
@@ -124,6 +123,87 @@ final appRouterProvider = Provider((ref) {
                 fadeTransitionPage(state, const InventoryPage()),
           ),
           GoRoute(
+            path: '/workforce',
+            pageBuilder: (context, state) =>
+                fadeTransitionPage(state, const WorkforcePage()),
+            routes: [
+              GoRoute(
+                path: 'settings',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const WorkforceSettingsPage()),
+              ),
+              GoRoute(
+                path: 'teams',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const WorkforceTeamsPage()),
+              ),
+              GoRoute(
+                path: 'shifts',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const WorkforceShiftsPage()),
+              ),
+              GoRoute(
+                path: 'staffs',
+                pageBuilder: (context, state) => fadeTransitionPage(
+                    state, const WorkforceStaffAssignmentPage()),
+              ),
+              GoRoute(
+                path: 'staff_assignment',
+                pageBuilder: (context, state) => fadeTransitionPage(
+                    state, const WorkforceStaffAssignmentPage()),
+              ),
+              GoRoute(
+                path: 'assignments',
+                pageBuilder: (context, state) => fadeTransitionPage(
+                    state, const WorkforceStaffAssignmentPage()),
+              ),
+              GoRoute(
+                path: 'attendance',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const WorkforceAttendancePage()),
+              ),
+              GoRoute(
+                path: 'queue',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const WorkforceQueuePage()),
+              ),
+              GoRoute(
+                path: 'requests',
+                pageBuilder: (context, state) => fadeTransitionPage(
+                    state, const WorkforceTimeRequestsPage()),
+              ),
+              GoRoute(
+                path: 'time_requests',
+                pageBuilder: (context, state) => fadeTransitionPage(
+                    state, const WorkforceTimeRequestsPage()),
+              ),
+              GoRoute(
+                path: 'skills',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const WorkforceSkillsPage()),
+              ),
+              GoRoute(
+                path: 'stations',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const WorkforceStationsPage()),
+              ),
+              GoRoute(
+                path: 'recipes',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const WorkforceRecipesPage()),
+              ),
+              GoRoute(
+                path: 'allowed_ips',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const WorkforceAllowedIpsPage()),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/analytics',
+            builder: (context, state) => const AnalyticsDashboardPage(),
+          ),
+          GoRoute(
             path: '/settings',
             pageBuilder: (context, state) =>
                 fadeTransitionPage(state, const SettingsPage()),
@@ -137,6 +217,16 @@ final appRouterProvider = Provider((ref) {
                 path: 'cash_register',
                 pageBuilder: (context, state) =>
                     fadeTransitionPage(state, const CashRegisterPage()),
+              ),
+              GoRoute(
+                path: 'expenses',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const ExpensesPage()),
+              ),
+              GoRoute(
+                path: 'cash_reconciliation',
+                pageBuilder: (context, state) =>
+                    fadeTransitionPage(state, const CashReconciliationPage()),
               ),
               GoRoute(
                 path: 'summary',

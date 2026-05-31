@@ -18,6 +18,7 @@ void showCompleteSnack(
 
 class CompleteOrderPage extends ConsumerStatefulWidget {
   const CompleteOrderPage({super.key, required this.orderId});
+
   final num orderId;
 
   @override
@@ -59,13 +60,38 @@ class _CompleteOrderPageState extends ConsumerState<CompleteOrderPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+
+    _cCash.addListener(_refreshCompleteButton);
+    _cMpesaRef.addListener(_refreshCompleteButton);
+    _cMpesaRef2.addListener(_refreshCompleteButton);
+    _cMpesaRef3.addListener(_refreshCompleteButton);
+    _cBankRefNum.addListener(_refreshCompleteButton);
+    _cStkNumPush.addListener(_refreshCompleteButton);
+  }
+
+  void _refreshCompleteButton() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  @override
   void dispose() {
+    _cCash.removeListener(_refreshCompleteButton);
+    _cMpesaRef.removeListener(_refreshCompleteButton);
+    _cMpesaRef2.removeListener(_refreshCompleteButton);
+    _cMpesaRef3.removeListener(_refreshCompleteButton);
+    _cBankRefNum.removeListener(_refreshCompleteButton);
+    _cStkNumPush.removeListener(_refreshCompleteButton);
+
     _cCash.dispose();
     _cMpesaRef.dispose();
     _cMpesaRef2.dispose();
     _cMpesaRef3.dispose();
     _cBankRefNum.dispose();
     _cStkNumPush.dispose();
+
     super.dispose();
   }
 
@@ -341,12 +367,61 @@ class _CompleteOrderPageState extends ConsumerState<CompleteOrderPage> {
     );
   }
 
+  Future<bool> _ensureReturnablesReady(Map<dynamic, dynamic> order) async {
+    final api = ApiProvider();
+    final user = LocalStorage.nosql.activeAgent != null
+        ? ServiceUser.fromMap(LocalStorage.nosql.activeAgent!)
+        : ref.read(authenticationServiceProvider).valueOrNull?.user ??
+            LocalStorage.nosql.user;
+
+    final billNo = '${order['billno'] ?? order['bill_no'] ?? ''}';
+    final companyId =
+        '${user?.shop ?? order['company_id'] ?? order['shop'] ?? ''}';
+
+    final response = await api.post(
+      '/workforce/check_order_returnables_before_complete.php',
+      body: {
+        'company_id': companyId,
+        'order_no': billNo,
+      },
+    );
+
+    final data = response['data'] is Map ? response['data'] as Map : response;
+    final outstanding =
+        data['outstanding'] is List ? data['outstanding'] as List : const [];
+
+    if (outstanding.isEmpty) return true;
+
+    if (!mounted) return false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _ReturnablesReceiptDialog(
+        items: outstanding,
+        companyId: companyId,
+        orderNo: billNo,
+        receivedById: '${user?.id ?? 0}',
+        receivedByName: '${user?.name ?? ''}',
+      ),
+    );
+
+    return confirmed == true;
+  }
+
   Future<void> _handleCompleteOrder(Map<dynamic, dynamic> order) async {
     if (!completeIt || loading) return;
 
     setState(() => loading = true);
 
     try {
+      final canComplete = await _ensureReturnablesReady(order);
+
+      if (!canComplete) {
+        if (mounted) setState(() => loading = false);
+        return;
+      }
+
       await completeOrder(order);
 
       if (!mounted) return;
@@ -400,7 +475,6 @@ class _CompleteOrderPageState extends ConsumerState<CompleteOrderPage> {
 
   TextField cashPayment(theme) {
     return TextField(
-      readOnly: true,
       controller: _cCash,
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -412,7 +486,6 @@ class _CompleteOrderPageState extends ConsumerState<CompleteOrderPage> {
   TextField bankPayment(theme) {
     return TextField(
       autofocus: true,
-      readOnly: true,
       controller: _cBankRefNum,
       keyboardType: TextInputType.text,
       textCapitalization: TextCapitalization.characters,
@@ -500,14 +573,14 @@ class _CompleteOrderPageState extends ConsumerState<CompleteOrderPage> {
     bool stkok = true;
 
     if (mpesa) mpesaok = _mpesaCodes().isNotEmpty;
-    if (mpesa && cash) cashok = _cCash.text.isNotEmpty;
+    if (mpesa && cash) cashok = _cCash.text.trim().isNotEmpty;
 
     if (bank) {
-      bankok = _cBankRefNum.text.isNotEmpty && _cBankRefNum.text.length > 4;
+      bankok = _cBankRefNum.text.trim().length >= 4;
     }
 
     if (stkpush) {
-      stkok = _cStkNumPush.text.isNotEmpty && _cStkNumPush.text.length == 10;
+      stkok = _cStkNumPush.text.trim().length == 10;
     }
 
     return mpesaok && cashok && bankok && stkok && haspayment;
@@ -599,6 +672,194 @@ class _CompleteOrderPageState extends ConsumerState<CompleteOrderPage> {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+class _ReturnablesReceiptDialog extends StatefulWidget {
+  const _ReturnablesReceiptDialog({
+    required this.items,
+    required this.companyId,
+    required this.orderNo,
+    required this.receivedById,
+    required this.receivedByName,
+  });
+
+  final List items;
+  final String companyId;
+  final String orderNo;
+  final String receivedById;
+  final String receivedByName;
+
+  @override
+  State<_ReturnablesReceiptDialog> createState() =>
+      _ReturnablesReceiptDialogState();
+}
+
+class _ReturnablesReceiptDialogState extends State<_ReturnablesReceiptDialog> {
+  bool loading = false;
+  String error = '';
+
+  static const Color venaTeal = Color(0xff00BFD8);
+  static const Color venaDark = Color(0xff07304A);
+  static const Color venaMuted = Color(0xff6B8794);
+  static const Color venaLine = Color(0xffCFEFF4);
+
+  Future<void> _confirm() async {
+    setState(() {
+      loading = true;
+      error = '';
+    });
+
+    try {
+      final api = ApiProvider();
+      await api.post('/workforce/confirm_order_returnables.php', body: {
+        'company_id': widget.companyId,
+        'order_no': widget.orderNo,
+        'received_by_id': widget.receivedById,
+        'received_by_name': widget.receivedByName,
+      });
+
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        error = '$e';
+        loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.all(18),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 680),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.assignment_return_rounded,
+                    color: Color(0xff8B5CF6),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Returnable Items Required',
+                      style: TextStyle(
+                        color: venaDark,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'This order cannot be completed until front office confirms receipt of the returnable items below.',
+                style: TextStyle(
+                  color: venaMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: widget.items.length,
+                  separatorBuilder: (_, __) => const Divider(color: venaLine),
+                  itemBuilder: (_, index) {
+                    final item = widget.items[index] as Map;
+                    return ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const CircleAvatar(
+                        backgroundColor: Color(0xffF4F0FF),
+                        child: Icon(
+                          Icons.inventory_2_rounded,
+                          color: Color(0xff8B5CF6),
+                        ),
+                      ),
+                      title: Text(
+                        '${item['product_name'] ?? item['name'] ?? 'Returnable item'}',
+                        style: const TextStyle(
+                          color: venaDark,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Beautician: ${item['employee_name'] ?? ''}',
+                        style: const TextStyle(color: venaMuted),
+                      ),
+                      trailing: Text(
+                        'x${item['quantity'] ?? item['qty'] ?? item['outstanding_qty'] ?? 1}',
+                        style: const TextStyle(
+                          color: venaDark,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              if (error.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  error,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: loading
+                          ? null
+                          : () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: loading ? null : _confirm,
+                      icon: loading
+                          ? const SizedBox(
+                              height: 15,
+                              width: 15,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.check_rounded),
+                      label: const Text('Confirm Receipt'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: venaTeal,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

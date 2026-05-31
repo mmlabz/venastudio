@@ -1,4 +1,5 @@
 import 'package:venastudio/common.dart';
+import 'package:venastudio/modules/inventory/controllers/inventory_controller.dart';
 
 void showAppSnack(BuildContext context, String message, {bool error = false}) {
   ScaffoldMessenger.of(context).clearSnackBars();
@@ -205,9 +206,14 @@ class _CustomerAgentScreenState extends ConsumerState<CustomerAgentScreen> {
           'phone': agentUsing.phone,
           'pin': agentUsing.pin.toString(),
           'type': agentUsing.type,
+
+          // STORE / BRANCH
           'storeName': agentUsing.store,
           'storeId': agentUsing.shop?.toString(),
+
+          // COMPANY
           'shop': baseUser?.shop,
+
           'industry': baseUser?.industry,
           'merchant': baseUser?.merchant,
           'paybill': baseUser?.paybill,
@@ -215,7 +221,11 @@ class _CustomerAgentScreenState extends ConsumerState<CustomerAgentScreen> {
           'subscription_status': baseUser?.subscriptionStatus,
         };
 
+        debugPrint('ACTIVE AGENT SAVED => ${LocalStorage.nosql.activeAgent}');
+
         LocalStorage.nosql.screenLock = false;
+
+        ref.invalidate(inventoryServicesProvider);
 
         if (!mounted) return;
 

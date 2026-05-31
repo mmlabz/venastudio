@@ -67,12 +67,15 @@ class _UpdateOrderPageState extends ConsumerState<UpdateOrderPage> {
                                 .remove(value);
                           },
                           onTapAssign: (value) {
-                            ref
-                                .read(updateCartServiceProvider.notifier)
-                                .agent = MapEntry('${value.savis.id}', {
-                              'agentName': value.agent.name,
-                              'agentId': '${value.agent.id}',
-                            });
+                            try {
+                              ref.read(updateCartServiceProvider.notifier).agent =
+                                  SmartAssignmentBridge.entry(value);
+                            } catch (e) {
+                              context.showToast(
+                                '$e',
+                                textColor: theme.textIconPrimaryColor,
+                              );
+                            }
                           },
                           onTapAdd: (value) {
                             ref

@@ -101,7 +101,7 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
     ServiceUser? user = activeAgent != null
         ? ServiceUser.fromMap(activeAgent)
         : (ref.watch(authenticationServiceProvider).valueOrNull?.user ??
-              LocalStorage.nosql.user);
+            LocalStorage.nosql.user);
 
     final destinations = _destinations(user?.type);
 
@@ -134,7 +134,6 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
                     destinations,
                   ),
                 ),
-
                 Expanded(
                   child: Container(
                     margin: const EdgeInsets.fromLTRB(0, 0, 18, 18),
@@ -228,9 +227,7 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
         child: Column(
           children: [
             _logo(theme, route, currentRoute),
-
             const SizedBox(height: 28),
-
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -250,15 +247,12 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
                     .toList(),
               ),
             ),
-
             Container(
               height: 1,
               margin: const EdgeInsets.symmetric(horizontal: 18),
               color: venaLine,
             ),
-
             const SizedBox(height: 12),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Column(
@@ -327,7 +321,6 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
                   ),
                 ),
               ),
-
               AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOut,
@@ -377,9 +370,7 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
                         color: isActive ? Colors.white : venaMuted,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
                     Text(
                       menu,
                       maxLines: 1,
@@ -423,9 +414,7 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
           ),
           child: const Icon(Icons.spa_outlined, color: Colors.white, size: 24),
         ),
-
         const SizedBox(height: 9),
-
         const Text(
           'Vena',
           style: TextStyle(
@@ -435,9 +424,7 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
             letterSpacing: 0.4,
           ),
         ),
-
         const SizedBox(height: 2),
-
         Text(
           'Studio',
           style: TextStyle(
@@ -493,41 +480,52 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
 }
 
 List<Map<String, Object>> _destinations(String? userType) => [
-  if (userType == SUPERADMIN_TYPE_NAME ||
-      userType == FRONTOFFICE_TYPE_NAME ||
-      userType == EMPLOYEE_TYPE_NAME)
-    {
-      'name': 'Services',
-      'icon': Icons.build_circle_outlined,
-      'active_icon': Icons.build_circle,
-      'page': '/',
-    },
-
-  if (userType == SUPERADMIN_TYPE_NAME ||
-      userType == FRONTOFFICE_TYPE_NAME ||
-      userType == EMPLOYEE_TYPE_NAME)
-    {
-      'name': 'Queue',
-      'icon': Icons.receipt_long_outlined,
-      'active_icon': Icons.receipt_long,
-      'page': '/orders',
-    },
-
-  if (userType == SUPERADMIN_TYPE_NAME || userType == FRONTOFFICE_TYPE_NAME)
-    {
-      'name': 'Stock',
-      'icon': Icons.storefront_outlined,
-      'active_icon': Icons.storefront,
-      'page': '/inventory',
-    },
-
-  if (userType == SUPERADMIN_TYPE_NAME ||
-      userType == FRONTOFFICE_TYPE_NAME ||
-      userType == EMPLOYEE_TYPE_NAME)
-    {
-      'name': 'Settings',
-      'icon': Icons.settings_outlined,
-      'active_icon': Icons.settings,
-      'page': '/settings',
-    },
-];
+      if (userType == SUPERADMIN_TYPE_NAME ||
+          userType == FRONTOFFICE_TYPE_NAME ||
+          userType == EMPLOYEE_TYPE_NAME)
+        {
+          'name': 'Services',
+          'icon': Icons.build_circle_outlined,
+          'active_icon': Icons.build_circle,
+          'page': '/',
+        },
+      if (userType == SUPERADMIN_TYPE_NAME ||
+          userType == FRONTOFFICE_TYPE_NAME ||
+          userType == EMPLOYEE_TYPE_NAME)
+        {
+          'name': 'Queue',
+          'icon': Icons.receipt_long_outlined,
+          'active_icon': Icons.receipt_long,
+          'page': '/orders',
+        },
+      if (userType == SUPERADMIN_TYPE_NAME || userType == FRONTOFFICE_TYPE_NAME)
+        {
+          'name': 'Stock',
+          'icon': Icons.storefront_outlined,
+          'active_icon': Icons.storefront,
+          'page': '/inventory',
+        },
+      if (userType == SUPERADMIN_TYPE_NAME || userType == FRONTOFFICE_TYPE_NAME)
+        {
+          'name': 'HR',
+          'icon': Icons.groups_3_outlined,
+          'active_icon': Icons.groups_3,
+          'page': '/workforce',
+        },
+      if (userType == SUPERADMIN_TYPE_NAME || userType == FRONTOFFICE_TYPE_NAME)
+        {
+          'name': 'Analytics',
+          'icon': Icons.analytics_outlined,
+          'active_icon': Icons.analytics_rounded,
+          'page': '/analytics',
+        },
+      if (userType == SUPERADMIN_TYPE_NAME ||
+          userType == FRONTOFFICE_TYPE_NAME ||
+          userType == EMPLOYEE_TYPE_NAME)
+        {
+          'name': 'Settings',
+          'icon': Icons.settings_outlined,
+          'active_icon': Icons.settings,
+          'page': '/settings',
+        },
+    ];

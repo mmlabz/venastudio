@@ -51,7 +51,7 @@ Future<Uint8List> _generateReceipt({
 }) async {
   final pdf = Document(version: PdfVersion.pdf_1_5, compress: true);
   final font = await PdfGoogleFonts.nunitoExtraLight();
-  final imageByte = await rootBundle.load('assets/images/logo.jpg');
+  final imageByte = await rootBundle.load('assets/images/logo.png');
   final logo = Image(MemoryImage(imageByte.buffer.asUint8List()));
 
   final now = DateFormat.yMd().add_jm().format(DateTime.now());

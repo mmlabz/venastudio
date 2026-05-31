@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:venastudio/common.dart';
 
@@ -72,6 +73,7 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
 
     final ordersState = ref.watch(orderServicesProvider);
     final agentsService = ref.watch(agentsServicesProvider);
+    final settingsService = ref.watch(settingsServicesProvider);
 
     final isloading = ordersState is OrdersLoading;
     final iserror = ordersState is OrdersError;
@@ -269,6 +271,7 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
                                   false,
                                   isWaitingSelected,
                                   agentsService,
+                                  settingsService,
                                   theme,
                                   isEmployee,
                                   isFrontOffice,
@@ -567,6 +570,7 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
     bool insearch,
     bool isWaitingSelected,
     AsyncValue<List<Agent>> agentsService,
+    SettingsConfig settingsService,
     ThemeConfig theme,
     bool isEmployee,
     bool isFrontOffice,
@@ -688,53 +692,78 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
                 const SizedBox(width: 8),
                 if (!readonly && canComplete && isFrontOffice)
                   Expanded(
-                    child: TextButton(
-                      onPressed: () {
-                        if (insearch && Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        }
+                    child: FutureBuilder<Map<String, dynamic>>(
+                      future: _returnableStatus(order),
+                      builder: (context, snapshot) {
+                        final outstanding = snapshot.data?['outstanding'] is List
+                            ? snapshot.data!['outstanding'] as List
+                            : const [];
 
-                        if (!mounted) return;
+                        final hasPendingStock = outstanding.isNotEmpty;
+                        final buttonText = hasPendingStock ? 'Receive Stock' : 'Complete';
+                        final icon = hasPendingStock
+                            ? Icons.assignment_return_rounded
+                            : Icons.check_circle_outline;
 
-                        context.go('/orders/complete/${order['id']}');
-                      },
-                      style: TextButton.styleFrom(
-                        backgroundColor: venaTeal,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Complete',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13,
+                        return TextButton(
+                          onPressed: snapshot.connectionState == ConnectionState.waiting
+                              ? null
+                              : () async {
+                                  if (insearch && Navigator.of(context).canPop()) {
+                                    Navigator.of(context).pop();
+                                  }
+
+                                  if (!mounted) return;
+
+                                  await _handleCompleteOrReceiveStock(order);
+                                },
+                          style: TextButton.styleFrom(
+                            backgroundColor: hasPendingStock
+                                ? const Color(0xff8B5CF6)
+                                : venaTeal,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: venaMuted.withOpacity(.35),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.zero,
                             ),
                           ),
-                          SizedBox(width: 7),
-                          Icon(
-                            Icons.check_circle_outline,
-                            size: 16,
-                            color: Colors.white,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  snapshot.connectionState == ConnectionState.waiting
+                                      ? 'Checking...'
+                                      : buttonText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 7),
+                              Icon(
+                                icon,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                   ),
-                if (!readonly && isFrontOffice && status == 'Waiting')
+                if (!readonly && isFrontOffice && status == 'Waiting' && !settingsService.trackStock)
                   Expanded(
                     child: TextButton(
                       onPressed: () async {
                         await _assignOrderAgent(
                           order: order,
                           agentsService: agentsService,
+                          settingsService: settingsService,
                           theme: theme,
                         );
                       },
@@ -776,9 +805,87 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
     );
   }
 
+
+  Future<Map<String, dynamic>> _returnableStatus(Map<String, dynamic> order) async {
+    final user = _currentUser();
+    final api = ApiProvider();
+
+    final billNo = '${order['billno'] ?? order['bill_no'] ?? ''}';
+    final companyId = '${user?.shop ?? order['company_id'] ?? order['shop'] ?? ''}';
+
+    if (billNo.isEmpty || companyId.isEmpty) {
+      return {
+        'can_complete': true,
+        'outstanding': const [],
+      };
+    }
+
+    final response = await api.post(
+      '/workforce/check_order_returnables_before_complete.php',
+      body: {
+        'company_id': companyId,
+        'order_no': billNo,
+      },
+    );
+
+    final data = response['data'] is Map<String, dynamic>
+        ? response['data'] as Map<String, dynamic>
+        : response is Map<String, dynamic>
+            ? response
+            : <String, dynamic>{};
+
+    final outstanding = data['outstanding'] is List
+        ? data['outstanding'] as List
+        : const [];
+
+    return {
+      'can_complete': outstanding.isEmpty,
+      'outstanding': outstanding,
+    };
+  }
+
+  Future<void> _handleCompleteOrReceiveStock(Map<String, dynamic> order) async {
+    try {
+      final status = await _returnableStatus(order);
+      final outstanding = status['outstanding'] is List
+          ? status['outstanding'] as List
+          : const [];
+
+      if (!mounted) return;
+
+      if (outstanding.isNotEmpty) {
+        final user = _currentUser();
+        final confirmed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => _OrderReturnableReceiptDialog(
+            items: outstanding,
+            companyId: '${user?.shop ?? order['company_id'] ?? order['shop'] ?? ''}',
+            orderNo: '${order['billno'] ?? order['bill_no'] ?? ''}',
+            receivedById: '${user?.id ?? 0}',
+            receivedByName: '${user?.name ?? ''}',
+          ),
+        );
+
+        if (confirmed == true) {
+          showOrderSnack(context, 'Stock received. You can now complete the order.');
+          await _refreshOrders();
+        }
+
+        return;
+      }
+
+      context.go('/orders/complete/${order['id']}');
+    } catch (e) {
+      if (!mounted) return;
+      showOrderSnack(context, 'Could not check returnable stock', error: true);
+    }
+  }
+
   Future<void> _assignOrderAgent({
     required Map<String, dynamic> order,
     required AsyncValue<List<Agent>> agentsService,
+    required SettingsConfig settingsService,
     required ThemeConfig theme,
   }) async {
     if (agentsService is! AsyncData<List<Agent>>) return;
@@ -787,7 +894,15 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
         .where((element) => !element.archived)
         .toList();
 
-    final value = await PickAgent.show(context, agents);
+    final value = await SmartAssignmentBridge.pickAgent(
+      context,
+      settings: settingsService,
+      agents: agents,
+      serviceLike: order,
+      orderNo: '${order['billno'] ?? ''}',
+      cartId: '${order['id'] ?? ''}',
+      existingOrderMode: true,
+    );
 
     if (!mounted) return;
     if (value == null) return;
@@ -857,6 +972,435 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
           ),
         ),
       ],
+    );
+  }
+}
+
+
+
+class _ReturnItemDraft {
+  _ReturnItemDraft(Map raw)
+      : item = raw,
+        quantityController = TextEditingController(
+          text: '${raw['outstanding_qty'] ?? raw['quantity'] ?? raw['qty'] ?? 1}',
+        ),
+        notesController = TextEditingController();
+
+  final Map item;
+  final TextEditingController quantityController;
+  final TextEditingController notesController;
+  String condition = 'good';
+
+  void dispose() {
+    quantityController.dispose();
+    notesController.dispose();
+  }
+
+  Map<String, dynamic> toPayload() {
+    return {
+      'line_id': '${item['id'] ?? item['line_id'] ?? ''}',
+      'assignment_id': '${item['assignment_id'] ?? ''}',
+      'product_id': '${item['product_id'] ?? ''}',
+      'quantity_returned': quantityController.text.trim(),
+      'condition_returned': condition,
+      'return_notes': notesController.text.trim(),
+    };
+  }
+}
+
+class _OrderReturnableReceiptDialog extends StatefulWidget {
+  const _OrderReturnableReceiptDialog({
+    required this.items,
+    required this.companyId,
+    required this.orderNo,
+    required this.receivedById,
+    required this.receivedByName,
+  });
+
+  final List items;
+  final String companyId;
+  final String orderNo;
+  final String receivedById;
+  final String receivedByName;
+
+  @override
+  State<_OrderReturnableReceiptDialog> createState() =>
+      _OrderReturnableReceiptDialogState();
+}
+
+class _OrderReturnableReceiptDialogState
+    extends State<_OrderReturnableReceiptDialog> {
+  late final List<_ReturnItemDraft> drafts;
+
+  bool loading = false;
+  String error = '';
+
+  static const Color venaTeal = Color(0xff00BFD8);
+  static const Color venaDark = Color(0xff07304A);
+  static const Color venaMuted = Color(0xff6B8794);
+  static const Color venaLine = Color(0xffCFEFF4);
+  static const Color returnPurple = Color(0xff8B5CF6);
+
+  @override
+  void initState() {
+    super.initState();
+    drafts = widget.items
+        .whereType<Map>()
+        .map((e) => _ReturnItemDraft(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    for (final draft in drafts) {
+      draft.dispose();
+    }
+    super.dispose();
+  }
+
+  double _maxQty(_ReturnItemDraft draft) {
+    final raw = draft.item;
+    final quantity = double.tryParse('${raw['quantity'] ?? raw['qty'] ?? 1}') ?? 1;
+    final returned = double.tryParse('${raw['returned_quantity'] ?? 0}') ?? 0;
+    final outstanding =
+        double.tryParse('${raw['outstanding_qty'] ?? ''}') ?? (quantity - returned);
+    return outstanding <= 0 ? quantity : outstanding;
+  }
+
+  bool _validate() {
+    for (final draft in drafts) {
+      final qty = double.tryParse(draft.quantityController.text.trim()) ?? 0;
+      final max = _maxQty(draft);
+
+      if (qty <= 0) {
+        error = 'Returned quantity must be greater than zero.';
+        return false;
+      }
+
+      if (qty > max) {
+        error =
+            'Returned quantity for ${draft.item['product_name'] ?? 'item'} cannot exceed $max.';
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  Future<void> _confirmReceipt() async {
+    setState(() {
+      loading = true;
+      error = '';
+    });
+
+    if (!_validate()) {
+      setState(() => loading = false);
+      return;
+    }
+
+    try {
+      final api = ApiProvider();
+
+      await api.post(
+        '/workforce/confirm_order_returnables.php',
+        body: {
+          'company_id': widget.companyId,
+          'order_no': widget.orderNo,
+          'received_by_id': widget.receivedById,
+          'received_by_name': widget.receivedByName,
+          'items': jsonEncode(drafts.map((e) => e.toPayload()).toList()),
+        },
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+        error = '$e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    return Dialog(
+      backgroundColor: Colors.white,
+      insetPadding: EdgeInsets.all(isMobile ? 10 : 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 760,
+          maxHeight: MediaQuery.of(context).size.height * .88,
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(18, 16, 12, 14),
+              decoration: const BoxDecoration(
+                color: Color(0xffEEF9FB),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                border: Border(bottom: BorderSide(color: venaLine)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    height: 42,
+                    width: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xffF4F0FF),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.assignment_return_rounded,
+                      color: returnPurple,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Receive Returnable Stock',
+                          style: TextStyle(
+                            color: venaDark,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(height: 3),
+                        Text(
+                          'Confirm quantity, condition, and notes per item.',
+                          style: TextStyle(
+                            color: venaMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: loading ? null : () => Navigator.of(context).pop(false),
+                    icon: const Icon(Icons.close_rounded, color: venaDark),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: drafts.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 14),
+                itemBuilder: (_, index) => _returnItemCard(drafts[index], index),
+              ),
+            ),
+            if (error.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  error,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Color(0xffF8FDFF),
+                border: Border(top: BorderSide(color: venaLine)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed:
+                          loading ? null : () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: returnPurple,
+                        side: const BorderSide(color: returnPurple),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: loading ? null : _confirmReceipt,
+                      icon: loading
+                          ? const SizedBox(
+                              height: 15,
+                              width: 15,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.check_rounded),
+                      label: const Text(
+                        'Confirm Received',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: venaTeal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _returnItemCard(_ReturnItemDraft draft, int index) {
+    final item = draft.item;
+    final maxQty = _maxQty(draft);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xffF8FDFF),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: venaLine),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: const Color(0xffF4F0FF),
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    color: returnPurple,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '${item['product_name'] ?? item['name'] ?? 'Returnable item'}',
+                  style: const TextStyle(
+                    color: venaDark,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: returnPurple.withOpacity(.10),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Outstanding: $maxQty',
+                  style: const TextStyle(
+                    color: returnPurple,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Beautician: ${item['employee_name'] ?? ''}',
+            style: const TextStyle(
+              color: venaMuted,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: draft.quantityController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: _fieldDecoration('Quantity returned'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: draft.condition,
+                  decoration: _fieldDecoration('Condition'),
+                  items: const [
+                    DropdownMenuItem(value: 'good', child: Text('Good')),
+                    DropdownMenuItem(value: 'used', child: Text('Used')),
+                    DropdownMenuItem(value: 'damaged', child: Text('Damaged')),
+                    DropdownMenuItem(value: 'missing', child: Text('Missing')),
+                    DropdownMenuItem(value: 'lost', child: Text('Lost')),
+                  ],
+                  onChanged: loading
+                      ? null
+                      : (value) {
+                          if (value == null) return;
+                          setState(() => draft.condition = value);
+                        },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: draft.notesController,
+            minLines: 2,
+            maxLines: 4,
+            decoration: _fieldDecoration('Special note / return notes'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _fieldDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      isDense: true,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      labelStyle: const TextStyle(
+        color: venaMuted,
+        fontWeight: FontWeight.w700,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: venaLine),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: venaTeal, width: 1.4),
+      ),
     );
   }
 }

@@ -48,7 +48,12 @@ class ServiceCartPage extends ConsumerStatefulWidget {
       ref.read(cartServiceProvider.notifier).clearState();
 
       return true;
-    } catch (_) {
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Create order failed: $error')),
+        );
+      }
       return false;
     }
   }
@@ -103,6 +108,19 @@ class _ServiceCartPageState extends ConsumerState<ServiceCartPage> {
 
     final agentsList = agentsService.valueOrNull ?? <Agent>[];
     final branchesList = branchesService.valueOrNull ?? [];
+
+    final activeAgent = LocalStorage.nosql.activeAgent;
+    final ServiceUser? currentUser = activeAgent != null
+        ? ServiceUser.fromMap(activeAgent)
+        : ref.watch(authenticationServiceProvider).valueOrNull?.user ??
+            LocalStorage.nosql.user;
+
+    final bool isSuperAdmin = currentUser?.type == SUPERADMIN_TYPE_NAME;
+    final bool smartAssignmentOn = settingsService.trackStock;
+
+    if (!isSuperAdmin && _cShopName.text.trim().isEmpty) {
+      _cShopName.text = '${currentUser?.storeName ?? ''}';
+    }
 
     payFirst ??= settingsService.payFirst;
 
@@ -186,68 +204,77 @@ class _ServiceCartPageState extends ConsumerState<ServiceCartPage> {
                               ),
                             ),
                             const SizedBox(height: 14),
-                            _ResponsiveRow(
-                              twoColumns: twoColumns,
-                              children: [
-                                _CompactPicker(
-                                  label: 'Select Shop',
-                                  value: _cShopName.text.isEmpty
-                                      ? 'Select Shop'
-                                      : _cShopName.text,
-                                  icon: Icons.storefront_outlined,
-                                  onTap: () {
-                                    FocusScope.of(context).unfocus();
+                            if (isSuperAdmin) ...[
+                              _CompactPicker(
+                                label: 'Select Shop',
+                                value: _cShopName.text.isEmpty
+                                    ? 'Select Shop'
+                                    : _cShopName.text,
+                                icon: Icons.storefront_outlined,
+                                onTap: () {
+                                  FocusScope.of(context).unfocus();
 
-                                    SelectShop.show(
-                                      context,
-                                      branchesList,
-                                    ).then((value) {
-                                      if (value != null) {
-                                        ref
-                                                .read(
-                                                  cartServiceProvider.notifier,
-                                                )
-                                                .mainShop =
-                                            value;
+                                  SelectShop.show(
+                                    context,
+                                    branchesList,
+                                  ).then((value) {
+                                    if (value != null) {
+                                      ref
+                                              .read(
+                                                cartServiceProvider.notifier,
+                                              )
+                                              .mainShop =
+                                          value;
 
-                                        _cShopName.text =
-                                            '${value['name'] ?? ''}';
+                                      _cShopName.text =
+                                          '${value['name'] ?? ''}';
 
-                                        setState(() {});
-                                      }
-                                    });
-                                  },
-                                ),
-                                _CompactPicker(
-                                  label: 'Assign Agent',
-                                  value: _cAgentName.text.isEmpty
-                                      ? 'Select Agent'
-                                      : _cAgentName.text,
-                                  icon: Icons.person_outline,
-                                  onTap: () {
-                                    FocusScope.of(context).unfocus();
+                                      setState(() {});
+                                    }
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 14),
+                            ],
 
-                                    PickAgent.show(context, agentsList).then((
-                                      value,
-                                    ) {
-                                      if (value != null) {
-                                        ref
-                                                .read(
-                                                  cartServiceProvider.notifier,
-                                                )
-                                                .mainAgent =
-                                            value;
+                            if (!smartAssignmentOn) ...[
+                              _CompactPicker(
+                                label: 'Assign Agent',
+                                value: _cAgentName.text.isEmpty
+                                    ? 'Select Agent'
+                                    : _cAgentName.text,
+                                icon: Icons.person_outline,
+                                onTap: () {
+                                  FocusScope.of(context).unfocus();
 
-                                        _cAgentName.text = value.name;
+                                  SmartAssignmentBridge.pickAgent(
+                                    context,
+                                    settings: settingsService,
+                                    agents: agentsList,
+                                    serviceLike: const {
+                                      'id': 0,
+                                      'name': 'Main Order Agent',
+                                    },
+                                    existingOrderMode: false,
+                                  ).then((value) {
+                                    if (value != null) {
+                                      ref
+                                              .read(
+                                                cartServiceProvider.notifier,
+                                              )
+                                              .mainAgent =
+                                          value;
 
-                                        setState(() {});
-                                      }
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
+                                      _cAgentName.text = value.name;
+
+                                      setState(() {});
+                                    }
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+
                             _ResponsiveRow(
                               twoColumns: twoColumns,
                               children: [

@@ -51,7 +51,7 @@ class _PickAgentState extends ConsumerState<PickAgent> {
                     Expanded(
                       child: TextField(
                         autofocus: true,
-                        readOnly: true,
+                        readOnly: false,
                         controller: _controller,
                         onChanged: (value) {
                           final searched = widget.agents.where(

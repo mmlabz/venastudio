@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiProvider {
-  final String _baseUrl = 'https://api.marketmindslab.com/snap_services';
+  final String _baseUrl = 'https://api.marketmindslab.com/vena_studio';
 
   Uri uri(String url) {
     return Uri.parse(_baseUrl + url);

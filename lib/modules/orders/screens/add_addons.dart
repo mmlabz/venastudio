@@ -26,12 +26,13 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.of(context).size.width;
-    bool isSmallScreen = width < 600;
+    final bool isSmallScreen = width < 600;
 
     final theme = ref.watch(themeServicesProvider);
     final businessServices = ref.watch(businessServicesProvider);
     final cartitems = ref.watch(addonToAdd);
     final agentsService = ref.watch(agentsServicesProvider);
+
     final addons = businessServices.services.where(
       (element) => element.type == 'Addon',
     );
@@ -42,18 +43,28 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
           widget.prevAddons!.isNotEmpty &&
           cartitems.isEmpty) {
         final added = <int, int>{};
-        final servicesToFill = widget.prevAddons!.map((e) {
-          final isInAddons = addons.where((ex) => ex.id == e['id']).firstOrNull;
-          if (isInAddons != null) {
-            final qq = added[isInAddons.id];
-            added[isInAddons.id] = (qq ?? 0) + 1;
-            return isInAddons.copyWith(quantity: (qq ?? 0) + 1);
-          }
-        }).whereType<Savis>();
+
+        final servicesToFill = widget.prevAddons!
+            .map((e) {
+              final isInAddons =
+                  addons.where((ex) => ex.id == e['id']).firstOrNull;
+
+              if (isInAddons != null) {
+                final qq = added[isInAddons.id];
+                added[isInAddons.id] = (qq ?? 0) + 1;
+                return isInAddons.copyWith(quantity: (qq ?? 0) + 1);
+              }
+
+              return null;
+            })
+            .whereType<Savis>()
+            .toList();
+
         loaded = true;
-        ref
-            .read(addonToAdd.notifier)
-            .update((state) => servicesToFill.toList());
+
+        ref.read(addonToAdd.notifier).update(
+              (state) => servicesToFill,
+            );
       }
     });
 
@@ -69,6 +80,7 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
                   ref.invalidate(servicesToAdd);
+
                   if (Navigator.of(context).canPop()) {
                     Navigator.of(context).pop();
                   }
@@ -98,6 +110,7 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
                     title: 'Add Add-ons',
                     onBack: () {
                       ref.invalidate(servicesToAdd);
+
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
                       }
@@ -116,14 +129,16 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    int crossAxisCount = width > 1200
+                    final int crossAxisCount = width > 1200
                         ? 5
                         : width > 800
-                        ? 4
-                        : width > 600
-                        ? 3
-                        : 2;
-                    double aspectRatio = (width < 400) ? 0.8 / 1.4 : 0.8 / 1.1;
+                            ? 4
+                            : width > 600
+                                ? 3
+                                : 2;
+
+                    final double aspectRatio =
+                        (width < 400) ? 0.8 / 1.4 : 0.8 / 1.1;
 
                     return Center(
                       child: GridView.builder(
@@ -135,6 +150,7 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
                         itemCount: addons.length,
                         itemBuilder: (context, index) {
                           final savis = addons.elementAt(index);
+
                           return SavisCard(
                             savis: savis,
                             width: double.maxFinite,
@@ -144,9 +160,10 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
                               prev.removeWhere(
                                 (element) => element.id == savis.id,
                               );
-                              ref
-                                  .read(addonToAdd.notifier)
-                                  .update((state) => prev);
+
+                              ref.read(addonToAdd.notifier).update(
+                                    (state) => prev,
+                                  );
                             },
                             onEdit: null,
                             cartQuantity: OrderAddAddon.quantityInCart(
@@ -171,14 +188,18 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
                   final agents = (agentsService.value ?? [])
                       .where((element) => !element.archived)
                       .toList();
+
                   _ToAddAddon.show(
                     context: context,
                     addons: cartitems,
                     agents: agents,
+                    orderId: widget.orderId,
+                    itemId: widget.itemId,
                     onConfirm: (agnts) {
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
                       }
+
                       if (widget.prevAddons == null) {
                         ref
                             .read(orderServicesProvider.notifier)
@@ -189,26 +210,25 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
                               agents: agnts.$1,
                             )
                             .then((_) {
-                              // ignore: use_build_context_synchronously
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                              ref.invalidate(orderServicesProvider);
-                              // ignore: use_build_context_synchronously
-                              context.showToast(
-                                'Order updated',
-                                textColor: theme.textIconPrimaryColor,
-                              );
-                            })
-                            .onError((error, stackTrace) {
-                              // ignore: use_build_context_synchronously
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                            });
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+
+                          ref.invalidate(orderServicesProvider);
+
+                          context.showToast(
+                            'Order updated',
+                            textColor: theme.textIconPrimaryColor,
+                          );
+                        }).onError((error, stackTrace) {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+                        });
                       } else {
-                        var addonItems = cartitems.map((e) {
+                        final addonItems = cartitems.map((e) {
                           final agent = agnts.$1['${e.id}-${e.quantity}'];
+
                           return {
                             'id': agent?.id ?? '-1',
                             'name': agent?.name,
@@ -224,6 +244,7 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
                             'agents': [],
                           };
                         }).toList();
+
                         context.pop(addonItems);
                       }
                     },
@@ -248,7 +269,10 @@ class _OrderAddAddonState extends ConsumerState<OrderAddAddon> {
     final prev = ref.read(addonToAdd);
     final exists = prev.where((element) => element.id == savis.id).length;
     final newSavis = savis.copyWith(quantity: exists + 1);
-    ref.read(addonToAdd.notifier).update((state) => [...prev, newSavis]);
+
+    ref.read(addonToAdd.notifier).update(
+          (state) => [...prev, newSavis],
+        );
   }
 }
 
@@ -256,27 +280,35 @@ class _ToAddAddon extends ConsumerStatefulWidget {
   const _ToAddAddon({
     required this.addons,
     required this.agents,
+    required this.orderId,
+    required this.itemId,
     this.onConfirm,
   });
 
   final List<Savis> addons;
   final List<Agent> agents;
+  final num orderId;
+  final num itemId;
   final ValueChanged<(Map<String, Agent> data, BuildContext ctx)>? onConfirm;
 
-  static show({
+  static Future<void> show({
     required BuildContext context,
     required List<Savis> addons,
     required List<Agent> agents,
+    required num orderId,
+    required num itemId,
     ValueChanged<(Map<String, Agent> data, BuildContext ctx)>? onConfirm,
   }) {
-    return showDialog(
+    return showDialog<void>(
       context: context,
       useRootNavigator: SrceenType.type(context.sz).isMobile,
       builder: (_) {
         return _ToAddAddon(
           addons: addons,
-          onConfirm: onConfirm,
           agents: agents,
+          orderId: orderId,
+          itemId: itemId,
+          onConfirm: onConfirm,
         );
       },
     );
@@ -294,6 +326,7 @@ class _ToAddAddonState extends ConsumerState<_ToAddAddon> {
     final size = context.sz;
     final maxWidth = getMaxWidth(size.width);
     final theme = ref.watch(themeServicesProvider);
+    final settingsService = ref.watch(settingsServicesProvider);
 
     return Center(
       child: Padding(
@@ -336,30 +369,32 @@ class _ToAddAddonState extends ConsumerState<_ToAddAddon> {
                     shrinkWrap: true,
                     itemBuilder: (context, index) {
                       final savis = widget.addons[index];
+                      final key = '${savis.id}-${savis.quantity}';
+                      final assignedAgent = agentsMap[key];
+
                       return Card(
                         clipBehavior: Clip.hardEdge,
                         child: ListTile(
                           onTap: () {
-                            PickAgent.show(context, widget.agents).then((
-                              value,
-                            ) {
+                            SmartAssignmentBridge.pickAgent(
+                              context,
+                              settings: settingsService,
+                              agents: widget.agents,
+                              serviceLike: savis,
+                              existingOrderMode: widget.orderId > 0,
+                              cartId: '${widget.itemId}',
+                            ).then((value) {
                               if (value != null) {
                                 setState(() {
-                                  agentsMap['${savis.id}-${savis.quantity}'] =
-                                      value;
+                                  agentsMap[key] = value;
                                 });
                               }
                             });
                           },
                           title: Text(savis.name),
                           subtitle: Text(savis.amount.toDouble().money),
-                          trailing:
-                              agentsMap['${savis.id}-${savis.quantity}'] != null
-                              ? Text(
-                                  agentsMap['${savis.id}-${savis.quantity}']
-                                          ?.name ??
-                                      '',
-                                )
+                          trailing: assignedAgent != null
+                              ? Text(assignedAgent.name)
                               : Icon(
                                   Icons.error_outline,
                                   color: theme.deleteColor.withOpacity(.8),

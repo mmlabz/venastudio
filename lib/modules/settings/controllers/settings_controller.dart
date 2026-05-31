@@ -17,6 +17,11 @@ class SettingsServiceNotifier extends StateNotifier<SettingsConfig> {
   final AuthData? authService;
   final _apiService = ApiProvider();
 
+  bool _yes(dynamic value) {
+    final v = '$value'.trim().toLowerCase();
+    return v == '1' || v == 'true' || v == 'yes' || v == 'on';
+  }
+
   Future<void> init() async {
     final response =
         await _apiService.post(
@@ -25,18 +30,22 @@ class SettingsServiceNotifier extends StateNotifier<SettingsConfig> {
             )
             as Map;
     final data = response['data'] as Map<String, dynamic>;
-    final showDiscount = data['discount'] == '1';
-    final payFirst = data['pay_first'] == '1';
-    final showRegister = data['show_register'] == '1';
-    final showSummary = data['show_summary'] == '1';
-    final createAttendant = data['create_attendant'] == '1';
-    final trackStock = data['track_stock'] == '1';
+    final showDiscount = _yes(data['discount']);
+    final payFirst = _yes(data['pay_first']);
+    final showRegister = _yes(data['show_register']);
+    final showSummary = _yes(data['show_summary']);
+    final createAttendant = _yes(data['create_attendant']);
+    final trackStock = _yes(data['track_stock'] ?? data['trackStock']);
+    final trackAttendance = _yes(data['track_attendance'] ?? data['trackAttendance']);
+    final trackQueue = _yes(data['track_queue'] ?? data['trackQueue']);
     await LocalStorage.nosql.updateShowDiscount(showDiscount);
     await LocalStorage.nosql.updatePayFirst(payFirst);
     await LocalStorage.nosql.updateShowCashRegister(showRegister);
     await LocalStorage.nosql.updateShowSummary(showSummary);
     await LocalStorage.nosql.updateCreateAttendant(createAttendant);
     await LocalStorage.nosql.updateTrackStock(trackStock);
+    await LocalStorage.nosql.updateTrackAttendance(trackAttendance);
+    await LocalStorage.nosql.updateTrackQueue(trackQueue);
     state = state.copyWith(
       showDiscount: showDiscount,
       payFirst: payFirst,
@@ -44,6 +53,8 @@ class SettingsServiceNotifier extends StateNotifier<SettingsConfig> {
       showCashRegister: showRegister,
       showSummary: showSummary,
       trackStock: trackStock,
+      trackAttendance: trackAttendance,
+      trackQueue: trackQueue,
       createAttendant: createAttendant,
     );
   }
@@ -150,7 +161,38 @@ class SettingsServiceNotifier extends StateNotifier<SettingsConfig> {
       },
     );
     state = state.copyWith(trackStock: newValue, loading: false);
-    LocalStorage.nosql.updateTrackStock(newValue);
+    await LocalStorage.nosql.updateTrackStock(newValue);
+  }
+
+
+  Future<void> changeTrackAttendance() async {
+    state = state.copyWith(loading: true);
+    final newValue = !state.trackAttendance;
+    await _apiService.post(
+      '/update_settings.php',
+      body: {
+        'shop': authService?.user.shop,
+        'action': 'track_attendance',
+        'value': newValue ? '1' : '0',
+      },
+    );
+    state = state.copyWith(trackAttendance: newValue, loading: false);
+    await LocalStorage.nosql.updateTrackAttendance(newValue);
+  }
+
+  Future<void> changeTrackQueue() async {
+    state = state.copyWith(loading: true);
+    final newValue = !state.trackQueue;
+    await _apiService.post(
+      '/update_settings.php',
+      body: {
+        'shop': authService?.user.shop,
+        'action': 'track_queue',
+        'value': newValue ? '1' : '0',
+      },
+    );
+    state = state.copyWith(trackQueue: newValue, loading: false);
+    await LocalStorage.nosql.updateTrackQueue(newValue);
   }
 
   Future<void> changeScreenLock() async {

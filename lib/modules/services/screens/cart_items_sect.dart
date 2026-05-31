@@ -23,7 +23,7 @@ class CartItemsSection extends StatelessWidget {
   final SettingsConfig settingsService;
   final AsyncValue<List<Agent>> agentsService;
   final ValueChanged<Savis> onRemoveItem;
-  final ValueChanged<({Agent agent, Savis savis})> onTapAssign;
+  final ValueChanged<dynamic> onTapAssign;
   final ValueChanged<Savis> onTapAdd;
   final ValueChanged<Savis> onTapRemove;
   final ValueChanged<Savis> onRemoveDiscount;
@@ -239,12 +239,22 @@ class CartItemsSection extends StatelessWidget {
         return SizedBox(
           height: 34,
           child: TextButton.icon(
-            onPressed: () {
-              PickAgent.show(context, data).then((value) {
-                if (value != null) {
-                  onTapAssign((agent: value, savis: item));
-                }
-              });
+            onPressed: () async {
+              if (SmartAssignmentBridge.enabled(settingsService)) {
+                final value = await SmartAssignmentBridge.pickResult(
+                  context,
+                  settings: settingsService,
+                  agents: data,
+                  serviceLike: item,
+                );
+                if (value != null) onTapAssign(value);
+                return;
+              }
+
+              final value = await PickAgent.show(context, data);
+              if (value != null) {
+                onTapAssign((agent: value, savis: item));
+              }
             },
             style: TextButton.styleFrom(
               backgroundColor: assigned != null

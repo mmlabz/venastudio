@@ -29,6 +29,7 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
         final size = context.sz;
         final maxWidth = getMaxWidth(size.width);
         final theme = ref.watch(themeServicesProvider);
+        final settingsService = ref.watch(settingsServicesProvider);
 
         return Center(
           child: Padding(
@@ -55,15 +56,18 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
                         bill,
                         end != null ? (DateTime(0), end) : null,
                         theme,
+                        settingsService,
                       ),
-                      _buildReassignButton(
-                        ref,
-                        context,
-                        bill,
-                        orderid,
-                        agentsService,
-                        theme,
-                      ),
+                      if (!settingsService.trackStock)
+                        _buildReassignButton(
+                          ref,
+                          context,
+                          bill,
+                          orderid,
+                          agentsService,
+                          theme,
+                          settingsService,
+                        ),
                     ],
                   ),
                 ),
@@ -118,6 +122,7 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
     String bill,
     (DateTime start, DateTime end)? range,
     ThemeConfig theme,
+    SettingsConfig settingsService,
   ) {
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: size.height / 2, minHeight: 120),
@@ -141,6 +146,7 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
                   item,
                   range,
                   theme,
+                  settingsService,
                 );
         },
       ),
@@ -225,6 +231,7 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
     Map<String, dynamic> item,
     (DateTime start, DateTime end)? range,
     ThemeConfig theme,
+    SettingsConfig settingsService,
   ) {
     final price = (num.tryParse(item['price'].toString()) ?? 0).toDouble();
 
@@ -285,6 +292,7 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
                     item,
                     range,
                     theme,
+                    settingsService,
                   );
                 },
                 style: TextButton.styleFrom(
@@ -328,6 +336,7 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
     int orderid,
     AsyncValue<List<Agent>> agentsService,
     ThemeConfig theme,
+    SettingsConfig settingsService,
   ) {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -339,7 +348,7 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
         width: double.infinity,
         child: TextButton(
           onPressed: () {
-            onReassign(agentsService, context, ref, bill, orderid, theme);
+            onReassign(agentsService, context, ref, bill, orderid, theme, settingsService);
           },
           style: TextButton.styleFrom(
             backgroundColor: venaTeal,
@@ -364,10 +373,18 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
     String bill,
     int orderid,
     ThemeConfig theme,
+    SettingsConfig settingsService,
   ) {
     if (agentsService is AsyncData) {
       final agents = agentsService.value ?? [];
-      PickAgent.show(context, agents).then((value) {
+      SmartAssignmentBridge.pickAgent(
+        context,
+        settings: settingsService,
+        agents: agents,
+        serviceLike: const {'id': 0, 'name': 'Completed Order'},
+        orderNo: bill,
+        existingOrderMode: true,
+      ).then((value) {
         if (value != null) {
           context.loading;
           ref
@@ -404,12 +421,21 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
     Map<String, dynamic> item,
     (DateTime start, DateTime end)? range,
     ThemeConfig theme,
+    SettingsConfig settingsService,
   ) {
     if (agentsService is AsyncData) {
       final agents = agentsService.value ?? [];
       final useagents = agents.where((element) => !element.archived).toList();
 
-      PickAgent.show(context, useagents).then((value) {
+      SmartAssignmentBridge.pickAgent(
+        context,
+        settings: settingsService,
+        agents: useagents,
+        serviceLike: item,
+        orderNo: bill,
+        cartId: '${item['cartid'] ?? ''}',
+        existingOrderMode: true,
+      ).then((value) {
         if (value != null) {
           context.loading;
           ref

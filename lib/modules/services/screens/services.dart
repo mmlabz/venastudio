@@ -1,4 +1,6 @@
 import 'package:intl/intl.dart';
+import 'dart:convert';
+
 import 'package:venastudio/common.dart';
 
 ServiceUser? getCurrentSUser(WidgetRef ref) {
@@ -710,12 +712,8 @@ class CartSummaryWidget extends ConsumerWidget {
                               .setDiscount(value.savis, value.discount);
                         },
                         onTapAssign: (value) {
-                          ref
-                              .read(cartServiceProvider.notifier)
-                              .agent = MapEntry('${value.savis.id}', {
-                            'agentName': value.agent.name,
-                            'agentId': '${value.agent.id}',
-                          });
+                          ref.read(cartServiceProvider.notifier).agent =
+                              SmartAssignmentBridge.entry(value);
                         },
                         onSetAddons: (value) {
                           ref
@@ -1039,7 +1037,7 @@ class CartItemWidget extends StatefulWidget {
   final SettingsConfig settingsService;
   final AsyncValue<List<Agent>> agentsService;
   final ValueChanged<Savis> onRemoveItem;
-  final ValueChanged<({Agent agent, Savis savis})> onTapAssign;
+  final ValueChanged<dynamic> onTapAssign;
   final ValueChanged<Savis> onTapAdd;
   final ValueChanged<Savis> onTapRemove;
   final ValueChanged<Savis> onRemoveDiscount;
@@ -1076,6 +1074,93 @@ class _CartItemWidgetState extends State<CartItemWidget> {
   static const Color venaMuted = Color(0xff6B8794);
   static const Color venaLine = Color(0xffCFEFF4);
   static const Color venaDanger = Color(0xffD94B4B);
+
+  Map<String, String>? get _serviceAssignment {
+    return widget.cartService.assigned?['${widget.item.id}'];
+  }
+
+  String get _assignedBeauticianName {
+    return _serviceAssignment?['agentName'] ?? '';
+  }
+
+  int get _assignedProductCount {
+    final raw = _serviceAssignment?['smartAssignment'];
+    if (raw == null || raw.trim().isEmpty) return 0;
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        final products = decoded['products'];
+        if (products is List) return products.length;
+
+        final productsJson = decoded['products_json'];
+        if (productsJson is String && productsJson.trim().isNotEmpty) {
+          final inner = jsonDecode(productsJson);
+          if (inner is List) return inner.length;
+        }
+      }
+    } catch (_) {}
+
+    return 0;
+  }
+
+  bool get _hasServiceAssignment {
+    return _assignedBeauticianName.trim().isNotEmpty;
+  }
+
+  Widget _assignmentSummary() {
+    if (!_hasServiceAssignment) return const SizedBox.shrink();
+
+    final count = _assignedProductCount;
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xffECFFF7),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xff19B37A).withOpacity(.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.assignment_turned_in_rounded,
+            size: 17,
+            color: Color(0xff19B37A),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Assigned to $_assignedBeauticianName',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xff087A50),
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xff19B37A).withOpacity(.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '$count item${count == 1 ? '' : 's'}',
+              style: const TextStyle(
+                color: Color(0xff087A50),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1165,6 +1250,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
               ),
             ],
           ),
+          _assignmentSummary(),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -1271,16 +1357,20 @@ class _CartItemWidgetState extends State<CartItemWidget> {
   Widget _buildAssignButton() {
     return TextButton(
       onPressed: () async {
-        final selectedAgent = await PickAgent.show(
+        final agents = widget.agentsService.value ?? [];
+        final result = await SmartAssignmentBridge.pickResult(
           context,
-          widget.agentsService.value ?? [],
+          settings: widget.settingsService,
+          agents: agents,
+          serviceLike: widget.item,
+          existingOrderMode: false,
         );
-        if (selectedAgent != null) {
-          widget.onTapAssign((agent: selectedAgent, savis: widget.item));
+        if (result != null) {
+          widget.onTapAssign(result);
         }
       },
       style: _buttonStyle(),
-      child: const Text('Assign'),
+      child: Text(_hasServiceAssignment ? 'Reassign' : 'Assign'),
     );
   }
 

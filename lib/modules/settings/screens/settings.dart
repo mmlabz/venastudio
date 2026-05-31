@@ -431,8 +431,20 @@ Map<String, List<Map<String, dynamic>>> _getCategorizedActions(
           'name': 'Cash Register',
           'page': 'cash_register',
           'icon': Icons.attach_money,
-          'show': [SUPERADMIN_TYPE_NAME, FRONTOFFICE_TYPE_NAME],
+          'show': [SUPERADMIN_TYPE_NAME],
         },
+      {
+        'name': 'Expenses',
+        'page': 'expenses',
+        'icon': Icons.receipt_long_rounded,
+        'show': [SUPERADMIN_TYPE_NAME, FRONTOFFICE_TYPE_NAME],
+      },
+      {
+        'name': 'Cash Reconciliation',
+        'page': 'cash_reconciliation',
+        'icon': Icons.fact_check_rounded,
+        'show': [SUPERADMIN_TYPE_NAME, FRONTOFFICE_TYPE_NAME, EMPLOYEE_TYPE_NAME],
+      },
       if ((!st.loading && st.showSummary) || user?.type == SUPERADMIN_TYPE_NAME)
         {
           'name': 'Summary',

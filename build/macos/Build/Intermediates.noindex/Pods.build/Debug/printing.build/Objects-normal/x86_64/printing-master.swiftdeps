@@ -1,0 +1,7 @@
+version: "Apple Swift version 5.7.2 (swiftlang-5.7.2.135.5 clang-1400.0.29.51)"
+options: "f7db465c03c043d642e4b53a580c8844d5a38233638f947d4d241642298016fa"
+build_start_time: [1779994490, 794659137]
+build_end_time: [1779994545, 777391910]
+inputs:
+  "/Users/joshua/.pub-cache/hosted/pub.dev/printing-5.14.2/macos/Classes/PrintJob.swift": [1779199589, 721085548]
+  "/Users/joshua/.pub-cache/hosted/pub.dev/printing-5.14.2/macos/Classes/PrintingPlugin.swift": [1779199589, 720614433]
