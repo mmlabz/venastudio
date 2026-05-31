@@ -162,6 +162,10 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
   }) async {
     final user = _user;
     final cartMap = result.toCartMap();
+    final payload = result.payload;
+    final trackQueue = '${payload['enforce_queue'] ?? payload['track_queue'] ?? '0'}' == '1';
+    final trackStock = '${payload['track_stock'] ?? '0'}' == '1';
+    final trackAttendance = '${payload['enforce_attendance'] ?? payload['track_attendance'] ?? '0'}' == '1';
 
     final body = {
       'company_id': user?.shop ?? '',
@@ -182,6 +186,11 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
       'user': user?.name ?? '',
       'smartAssignment': cartMap['smartAssignment'] ?? '',
       'assignmentPayload': cartMap['smartAssignment'] ?? '',
+      'track_queue': trackQueue ? '1' : '0',
+      'queue_enabled': trackQueue ? '1' : '0',
+      'track_stock': trackStock ? '1' : '0',
+      'track_attendance': trackAttendance ? '1' : '0',
+      'smart_assignment_enabled': (trackStock || trackAttendance || trackQueue) ? '1' : '0',
     };
 
     await _apiService.post('/workforce/smart_assign_existing_service.php', body: body);

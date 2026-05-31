@@ -1,8 +1,8 @@
 version: "Apple Swift version 5.7.2 (swiftlang-5.7.2.135.5 clang-1400.0.29.51)"
 options: "cb28e575d79673ac4e451ee561bdb855517db37788bc371efac138cae125f70c"
-build_start_time: [1780213373, 397608995]
-build_end_time: [1780213387, 789245128]
+build_start_time: [1780218095, 39396047]
+build_end_time: [1780218105, 899153947]
 inputs:
-  "/Users/joshua/Desktop/softwares/venastudio/macos/Flutter/GeneratedPluginRegistrant.swift": [1780213333, 759278059]
+  "/Users/joshua/Desktop/softwares/venastudio/macos/Flutter/GeneratedPluginRegistrant.swift": [1780218063, 842010974]
   "/Users/joshua/Desktop/softwares/venastudio/macos/Runner/AppDelegate.swift": [1778058778, 895726203]
   "/Users/joshua/Desktop/softwares/venastudio/macos/Runner/MainFlutterWindow.swift": [1778058778, 907284498]

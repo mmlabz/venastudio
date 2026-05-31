@@ -105,6 +105,7 @@ class OrderView extends ConsumerWidget {
     required dynamic order,
     required dynamic item,
     required dynamic value,
+    required bool smartControlsEnabled,
   }) async {
     try {
       debugPrint(
@@ -115,11 +116,19 @@ class OrderView extends ConsumerWidget {
         'agentName=${value.agent.name}',
       );
 
-      await ref.read(orderServicesProvider.notifier).assignSingleSmart(
-            result: value,
-            order: order['billno'],
-            cartid: item['cartid'].toString(),
-          );
+      if (smartControlsEnabled) {
+        await ref.read(orderServicesProvider.notifier).assignSingleSmart(
+              result: value,
+              order: order['billno'],
+              cartid: item['cartid'].toString(),
+            );
+      } else {
+        await ref.read(orderServicesProvider.notifier).assignSingleAgent(
+              agent: value.agent,
+              order: order['billno'],
+              cartid: item['cartid'].toString(),
+            );
+      }
 
       ref.invalidate(orderServicesProvider);
 
@@ -358,6 +367,7 @@ class OrderView extends ConsumerWidget {
       order: order,
       item: item,
       value: value,
+      smartControlsEnabled: SmartAssignmentBridge.enabled(settingsService),
     );
   }
 
