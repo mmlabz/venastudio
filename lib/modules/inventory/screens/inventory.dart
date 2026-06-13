@@ -97,8 +97,9 @@ class InventoryPage extends ConsumerStatefulWidget {
 }
 
 class _InventoryPageState extends ConsumerState<InventoryPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+    with TickerProviderStateMixin {
+  TabController? _tabController;
+  int _tabControllerLength = 0;
 
   String search = '';
   String trackingFilter = 'ALL';
@@ -116,13 +117,35 @@ class _InventoryPageState extends ConsumerState<InventoryPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _ensureTabController(4);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
+  }
+
+  void _ensureTabController(int length) {
+    if (length <= 0) return;
+
+    if (_tabController != null && _tabControllerLength == length) {
+      return;
+    }
+
+    final oldController = _tabController;
+
+    _tabControllerLength = length;
+    _tabController = TabController(
+      length: length,
+      vsync: this,
+    );
+
+    if (oldController != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        oldController.dispose();
+      });
+    }
   }
 
   @override
@@ -134,13 +157,10 @@ class _InventoryPageState extends ConsumerState<InventoryPage>
     final canOperate = notifier.canOperate;
 
     final tabs = isEmployee
-        ? ['Available', 'My Items']
+        ? ['Issued', 'Returned']
         : ['Available', 'Requests', 'Issued', 'Returns'];
 
-    if (_tabController.length != tabs.length) {
-      _tabController.dispose();
-      _tabController = TabController(length: tabs.length, vsync: this);
-    }
+    _ensureTabController(tabs.length);
 
     return Scaffold(
       backgroundColor: venaBg,
@@ -190,11 +210,11 @@ class _InventoryPageState extends ConsumerState<InventoryPage>
                 _tabBar(tabs),
                 Expanded(
                   child: TabBarView(
-                    controller: _tabController,
+                    controller: _tabController!,
                     children: isEmployee
                         ? [
-                            _availableProducts(data.products, canOperate),
                             _myItems(data.issues, data.employees),
+                            _returns(data.returns, data.employees),
                           ]
                         : [
                             _availableProducts(data.products, canOperate),
@@ -225,8 +245,8 @@ class _InventoryPageState extends ConsumerState<InventoryPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Inventory Control',
+                Text(
+                  notifier.isEmployee ? 'My Stock' : 'Inventory Control',
                   style: TextStyle(
                     color: venaDark,
                     fontWeight: FontWeight.w900,
@@ -265,22 +285,28 @@ class _InventoryPageState extends ConsumerState<InventoryPage>
     String periodLabel,
   ) {
     final outstanding = isEmployee
-        ? data.issues
-            .where((i) => i.issuedTo == employeeId && i.qtyOutstanding > 0)
-            .length
+        ? data.issues.where((i) => i.qtyOutstanding > 0).length
         : data.outstandingCount;
 
-    final cards = [
-      _metric('Products', '${data.products.length}', periodLabel,
-          Icons.inventory_2_outlined, venaTeal),
-      _metric('Low Stock', '${data.lowStockCount}', periodLabel,
-          Icons.warning_amber_rounded, venaWarn),
-      if (!isEmployee)
-        _metric('Requests', '${data.requests.length}', periodLabel,
-            Icons.pending_actions_rounded, venaDark),
-      _metric(isEmployee ? 'My Items' : 'Outstanding', '$outstanding',
-          periodLabel, Icons.assignment_return_outlined, venaSuccess),
-    ];
+    final cards = isEmployee
+        ? [
+            _metric('Issued Items', '${data.issues.length}', periodLabel,
+                Icons.outbox_rounded, venaTeal),
+            _metric('Returned Items', '${data.returns.length}', periodLabel,
+                Icons.assignment_return_rounded, venaSuccess),
+            _metric('Outstanding', '$outstanding', periodLabel,
+                Icons.pending_actions_rounded, venaWarn),
+          ]
+        : [
+            _metric('Products', '${data.products.length}', periodLabel,
+                Icons.inventory_2_outlined, venaTeal),
+            _metric('Low Stock', '${data.lowStockCount}', periodLabel,
+                Icons.warning_amber_rounded, venaWarn),
+            _metric('Requests', '${data.requests.length}', periodLabel,
+                Icons.pending_actions_rounded, venaDark),
+            _metric('Outstanding', '$outstanding', periodLabel,
+                Icons.assignment_return_outlined, venaSuccess),
+          ];
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -636,7 +662,7 @@ class _InventoryPageState extends ConsumerState<InventoryPage>
         border: Border.all(color: venaLine),
       ),
       child: TabBar(
-        controller: _tabController,
+        controller: _tabController!,
         indicator: const BoxDecoration(color: venaTeal),
         labelColor: Colors.white,
         unselectedLabelColor: venaMuted,
@@ -862,7 +888,7 @@ class _InventoryPageState extends ConsumerState<InventoryPage>
   ) {
     if (issues.isEmpty) {
       return _empty(
-        'You have no outstanding inventory items for this period',
+        'No issued stock items found for this period',
         Icons.assignment_return_outlined,
       );
     }

@@ -68,17 +68,17 @@ class InventoryNotifier extends StateNotifier<AsyncValue<InventoryStateData>> {
   String get userType {
     final fromAgent = _activeAgent?['type']?.toString();
     if (fromAgent != null && fromAgent.trim().isNotEmpty) {
-      return fromAgent.trim();
+      return normalizeUserType(fromAgent);
     }
 
-    return _loginUser?.type ?? '';
+    return normalizeUserType(_loginUser?.type);
   }
 
   bool get hasActiveBranchSession {
     return companyId > 0 && storeId > 0 && employeeId > 0;
   }
 
-  bool get isEmployee => userType == EMPLOYEE_TYPE_NAME;
+  bool get isEmployee => isEmployeeType(userType);
 
   bool get canOperate {
     return userType == FRONTOFFICE_TYPE_NAME ||
@@ -180,41 +180,37 @@ class InventoryNotifier extends StateNotifier<AsyncValue<InventoryStateData>> {
   Future<InventoryStateData> _loadAll({
     required bool forceStaticReload,
   }) async {
+    if (isEmployee) {
+      final results = await Future.wait([
+        fetchIssues(issuedTo: employeeId),
+        fetchReturns(returnedBy: employeeId),
+      ]);
+
+      return InventoryStateData(
+        issues: results[0] as List<InventoryIssue>,
+        returns: results[1] as List<InventoryReturnRecord>,
+      );
+    }
+
     if (_cachedProducts.isEmpty || forceStaticReload) {
       _cachedProducts = await fetchProducts();
     }
 
-    if (!isEmployee && (_cachedEmployees.isEmpty || forceStaticReload)) {
+    if (_cachedEmployees.isEmpty || forceStaticReload) {
       _cachedEmployees = await fetchEmployees();
     }
 
-    final issues = await fetchIssues();
-
-    if (isEmployee) {
-      final myOutstanding = issues.where((issue) {
-        return issue.issuedTo == employeeId && issue.qtyOutstanding > 0;
-      }).toList();
-
-      return InventoryStateData(
-        products: _cachedProducts,
-        issues: myOutstanding,
-        employees: _cachedEmployees,
-      );
-    }
-
     final results = await Future.wait([
+      fetchIssues(),
       fetchRequests(),
       fetchReturns(),
     ]);
 
-    final requests = results[0] as List<InventoryRequest>;
-    final returns = results[1] as List<InventoryReturnRecord>;
-
     return InventoryStateData(
       products: _cachedProducts,
-      requests: requests,
-      issues: issues,
-      returns: returns,
+      issues: results[0] as List<InventoryIssue>,
+      requests: results[1] as List<InventoryRequest>,
+      returns: results[2] as List<InventoryReturnRecord>,
       employees: _cachedEmployees,
     );
   }
@@ -251,12 +247,13 @@ class InventoryNotifier extends StateNotifier<AsyncValue<InventoryStateData>> {
     ).map(InventoryRequest.fromMap).toList();
   }
 
-  Future<List<InventoryIssue>> fetchIssues() async {
+  Future<List<InventoryIssue>> fetchIssues({int? issuedTo}) async {
     final dynamic res = await _api.post(
       '/vena_stock/get_issued_products.php',
       body: {
         ..._baseBody,
         ..._periodBody,
+        if ((issuedTo ?? 0) > 0) 'issued_to': '${issuedTo!}',
       },
     );
 
@@ -267,12 +264,13 @@ class InventoryNotifier extends StateNotifier<AsyncValue<InventoryStateData>> {
     ).map(InventoryIssue.fromMap).toList();
   }
 
-  Future<List<InventoryReturnRecord>> fetchReturns() async {
+  Future<List<InventoryReturnRecord>> fetchReturns({int? returnedBy}) async {
     final dynamic res = await _api.post(
       '/vena_stock/get_returned_products.php',
       body: {
         ..._baseBody,
         ..._periodBody,
+        if ((returnedBy ?? 0) > 0) 'returned_by': '${returnedBy!}',
       },
     );
 

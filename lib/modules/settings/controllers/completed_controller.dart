@@ -29,9 +29,9 @@ import 'package:venastudio/common.dart';
 //       'id': '',
 //       'industry': user.industry,
 //       'shop': user.shop,
-//       'type': user.type,
+//       'type': completedUserType,
 //       'store': user.storeName,
-//       'usertype': '',
+//       'usertype': completedUserType,
 //       'service_type': 'addon',
 //       'start': sDate(range?.$1 ?? DateTime.now()),
 //       'end': sDate(range?.$2 ?? DateTime.now()),
@@ -91,14 +91,16 @@ class CompletedOrderServiceNotifier
     if (state is! AsyncLoading) {
       state = const AsyncLoading();
     }
-    final user = authService!.user;
+    final activeAgent = LocalStorage.nosql.activeAgent;
+    final user = activeAgent != null ? ServiceUser.fromMap(activeAgent) : authService!.user;
+    final completedUserType = normalizeUserType(user.type);
     final body = {
-      'id': '',
+      'id': '${user.id}',
       'industry': user.industry,
       'shop': user.shop,
-      'type': user.type,
+      'type': completedUserType,
       'store': user.storeName,
-      'usertype': '',
+      'usertype': completedUserType,
       'service_type': 'addon',
       'start': sDate(range?.$1 ?? DateTime.now()),
       'end': sDate(range?.$2 ?? DateTime.now()),

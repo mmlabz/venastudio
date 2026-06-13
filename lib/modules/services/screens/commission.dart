@@ -85,7 +85,7 @@ class _CommissionPageState extends ConsumerState<CommissionPage> {
               ),
               child: Row(
                 children: [
-                  if (user?.type != EMPLOYEE_TYPE_NAME && isSmallScreen) ...[
+                  if (!isEmployeeType(user?.type) && isSmallScreen) ...[
                     Expanded(child: _branchDropdown(branchNames)),
                     const SizedBox(width: 10),
                   ],
@@ -184,7 +184,7 @@ class _CommissionPageState extends ConsumerState<CommissionPage> {
                 ],
               ),
             ),
-            if (userType != EMPLOYEE_TYPE_NAME) ...[
+            if (!isEmployeeType(userType)) ...[
               SizedBox(width: 220, child: _branchDropdown(branchNames)),
               const SizedBox(width: 12),
             ],
@@ -330,6 +330,301 @@ class _CommissionPageState extends ConsumerState<CommissionPage> {
     );
   }
 
+
+  void _openCommissionServices(Map<String, dynamic> commission) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.78,
+          minChildSize: 0.45,
+          maxChildSize: 0.95,
+          builder: (context, controller) {
+            return FutureBuilder<List<Map<String, dynamic>>>(
+              future: ref
+                  .read(commissionServicesProvider.notifier)
+                  .fetchCommissionServices(commission),
+              builder: (context, snapshot) {
+                final services = snapshot.data ?? [];
+                final title = commission['name']?.toString() ?? 'Commission Services';
+
+                return Container(
+                  color: Colors.white,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: venaDark,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  const Text(
+                                    'Services, tickets and add-ons that affected this commission',
+                                    style: TextStyle(
+                                      color: venaMuted,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const Icon(Icons.close_rounded, color: venaDark),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(height: 1, color: venaLine),
+                      Expanded(
+                        child: snapshot.connectionState == ConnectionState.waiting
+                            ? const Center(child: CircularProgressIndicator(color: venaTeal))
+                            : services.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'No service breakdown found',
+                                      style: TextStyle(color: venaMuted, fontWeight: FontWeight.w800),
+                                    ),
+                                  )
+                                : ListView.separated(
+                                    controller: controller,
+                                    padding: const EdgeInsets.all(14),
+                                    itemBuilder: (context, index) {
+                                      return _serviceBreakdownTile(services[index]);
+                                    },
+                                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                    itemCount: services.length,
+                                  ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+
+  Widget _serviceBreakdownTile(Map<String, dynamic> item) {
+    final commissionValue = _safeDouble(item['commission']);
+    final serviceCommission = _safeDouble(item['serviceCommission']);
+    final addonAdditions = _safeDouble(item['addonAdditions']);
+    final addonDeductions = _safeDouble(item['addonDeductions']);
+    final net = _safeDouble(item['net']);
+    final duration = item['actualDuration']?.toString() ?? '';
+    final addons = _safeMapList(item['addons']);
+    final isAddonOnly = item['rowType']?.toString() == 'addon';
+
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: const Color(0xffF8FDFF),
+        border: Border.all(color: venaLine),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 34,
+                width: 34,
+                decoration: BoxDecoration(
+                  color: isAddonOnly
+                      ? const Color(0xff13A86B).withOpacity(0.10)
+                      : venaTeal.withOpacity(0.10),
+                  border: Border.all(color: venaLine),
+                ),
+                child: Icon(
+                  isAddonOnly ? Icons.add_circle_outline_rounded : Icons.spa_outlined,
+                  color: isAddonOnly ? const Color(0xff13A86B) : venaTeal,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['service']?.toString() ?? 'Service',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: venaDark,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if ((item['parentService']?.toString() ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Linked to: ${item['parentService']}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: venaMuted,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Text(
+                commissionValue.money,
+                style: TextStyle(
+                  color: commissionValue >= 0 ? venaTeal : const Color(0xffEF476F),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              _pill('Ticket', item['ticket']?.toString() ?? '-'),
+              _pill('Order', item['billno']?.toString() ?? '-'),
+              _pill('Net', net.money),
+              _pill('Time', duration.isEmpty ? '-' : duration),
+              _pill('Base Comm', serviceCommission.money),
+              if (addonAdditions > 0) _pill('Add-ons +', addonAdditions.money),
+              if (addonDeductions > 0) _pill('Add-ons -', addonDeductions.money),
+            ],
+          ),
+          if (addons.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(height: 1, color: venaLine),
+            const SizedBox(height: 10),
+            const Text(
+              'Add-ons affecting this commission',
+              style: TextStyle(
+                color: venaDark,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...addons.map(_addonRow),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _addonRow(Map<String, dynamic> addon) {
+    final effect = addon['effect']?.toString() ?? 'addition';
+    final amount = _safeDouble(addon['amount']);
+    final isAddition = effect == 'addition';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: isAddition
+            ? const Color(0xff13A86B).withOpacity(0.07)
+            : const Color(0xffEF476F).withOpacity(0.07),
+        border: Border.all(
+          color: isAddition
+              ? const Color(0xff13A86B).withOpacity(0.22)
+              : const Color(0xffEF476F).withOpacity(0.22),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isAddition ? Icons.add_rounded : Icons.remove_rounded,
+            size: 16,
+            color: isAddition ? const Color(0xff13A86B) : const Color(0xffEF476F),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${addon['name'] ?? 'Add-on'} • ${addon['label'] ?? ''}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: venaDark,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          Text(
+            '${isAddition ? '+' : '-'}${amount.money}',
+            style: TextStyle(
+              color: isAddition ? const Color(0xff13A86B) : const Color(0xffEF476F),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _safeDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString().replaceAll(',', '') ?? '') ?? 0;
+  }
+
+  int _safeInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  List<Map<String, dynamic>> _safeMapList(dynamic value) {
+    if (value is! List) return <Map<String, dynamic>>[];
+    return value
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  Widget _pill(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: venaLine),
+      ),
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          color: venaDark,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   Widget _commissionGrid(List<Map<String, dynamic>> data) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -342,12 +637,12 @@ class _CommissionPageState extends ConsumerState<CommissionPage> {
             : 1;
 
         double aspectRatio = constraints.maxWidth > 1000
-            ? 1.55
+            ? 1.15
             : constraints.maxWidth > 720
-            ? 1.38
+            ? 1.05
             : constraints.maxWidth > 460
-            ? 1.25
-            : 1.75;
+            ? 1.05
+            : 1.35;
 
         return RefreshIndicator(
           color: venaTeal,
@@ -364,7 +659,10 @@ class _CommissionPageState extends ConsumerState<CommissionPage> {
             ),
             itemCount: data.length,
             itemBuilder: (context, index) {
-              return CommissionCard(data: data[index]);
+              return CommissionCard(
+                data: data[index],
+                onTap: () => _openCommissionServices(data[index]),
+              );
             },
           ),
         );
@@ -375,8 +673,9 @@ class _CommissionPageState extends ConsumerState<CommissionPage> {
 
 class CommissionCard extends ConsumerWidget {
   final Map<String, dynamic> data;
+  final VoidCallback? onTap;
 
-  const CommissionCard({super.key, required this.data});
+  const CommissionCard({super.key, required this.data, this.onTap});
 
   static const Color venaTeal = Color(0xff00BFD8);
   static const Color venaDark = Color(0xff07304A);
@@ -388,8 +687,13 @@ class CommissionCard extends ConsumerWidget {
     final amount = (num.tryParse(data['amount'].toString()) ?? 0).toDouble();
     final commission = (num.tryParse(data['commission'].toString()) ?? 0)
         .toDouble();
+    final servicesCount = _safeInt(data['servicesCount']);
+    final addonAdds = (num.tryParse(data['addonAmount'].toString()) ?? 0).toDouble();
+    final addonDeductions = (num.tryParse(data['deductAmount'].toString()) ?? 0).toDouble();
 
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.94),
@@ -440,9 +744,47 @@ class CommissionCard extends ConsumerWidget {
           const SizedBox(height: 6),
 
           _infoRow('Commission', commission.money, highlight: true),
+
+          const SizedBox(height: 6),
+
+          _infoRow('Services Done', '$servicesCount'),
+
+          if (addonAdds > 0 || addonDeductions > 0) ...[
+            const SizedBox(height: 6),
+            _infoRow('Add-ons', '+${addonAdds.money} / -${addonDeductions.money}'),
+          ],
+
+          const SizedBox(height: 10),
+
+          SizedBox(
+            width: double.infinity,
+            height: 34,
+            child: OutlinedButton.icon(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: venaDark,
+                side: const BorderSide(color: venaLine),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                padding: EdgeInsets.zero,
+              ),
+              icon: const Icon(Icons.visibility_outlined, size: 16),
+              label: const Text(
+                'View Services',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
         ],
       ),
+      ),
     );
+  }
+
+
+  int _safeInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   Widget _infoRow(String label, String value, {bool highlight = false}) {

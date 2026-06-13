@@ -137,7 +137,7 @@ bool get isEmployeeSession {
     final agent = activeAgent;
     final loggedUser = user;
 
-    return agent != null || loggedUser?.type == EMPLOYEE_TYPE_NAME;
+    return agent != null || isEmployeeType(loggedUser?.type);
   }
   bool get payFirst {
     try {

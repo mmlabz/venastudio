@@ -103,7 +103,7 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
         : (ref.watch(authenticationServiceProvider).valueOrNull?.user ??
             LocalStorage.nosql.user);
 
-    final destinations = _destinations(user?.type);
+    final destinations = _destinations(normalizeUserType(user?.type));
 
     return Scaffold(
       backgroundColor: venaBg,
@@ -168,9 +168,8 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
               currentIndex: _getSelectedIndex(currentRoute, destinations),
               elevation: 14,
               onTap: (idx) {
-                setState(() {
-                  context.go(destinations[idx]['page'] as String);
-                });
+                final page = destinations[idx]['page'] as String;
+                _goToPage(page);
               },
               items: destinations.map((dest) {
                 bool isActive = _isRouteActive(
@@ -191,6 +190,19 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
             )
           : null,
     );
+  }
+
+  void _goToPage(String page) {
+    if (page == '/orders') {
+      ref.invalidate(orderServicesProvider);
+    }
+
+    if (page == '/commission' || page == '/settings/commission') {
+      ref.invalidate(commissionServicesProvider);
+    }
+
+    if (!mounted) return;
+    context.go(page);
   }
 
   bool _isRouteActive(String route, String currentRoute) {
@@ -292,7 +304,7 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
-        onTap: () => context.go(route),
+        onTap: () => _goToPage(route),
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
           child: Stack(
@@ -479,53 +491,67 @@ class _MainPageState extends ConsumerState<MainPage> with WindowListener {
   }
 }
 
-List<Map<String, Object>> _destinations(String? userType) => [
-      if (userType == SUPERADMIN_TYPE_NAME ||
-          userType == FRONTOFFICE_TYPE_NAME ||
-          userType == EMPLOYEE_TYPE_NAME)
-        {
-          'name': 'Services',
-          'icon': Icons.build_circle_outlined,
-          'active_icon': Icons.build_circle,
-          'page': '/',
-        },
-      if (userType == SUPERADMIN_TYPE_NAME ||
-          userType == FRONTOFFICE_TYPE_NAME ||
-          userType == EMPLOYEE_TYPE_NAME)
-        {
-          'name': 'Queue',
-          'icon': Icons.receipt_long_outlined,
-          'active_icon': Icons.receipt_long,
-          'page': '/orders',
-        },
-      if (userType == SUPERADMIN_TYPE_NAME || userType == FRONTOFFICE_TYPE_NAME)
-        {
-          'name': 'Stock',
-          'icon': Icons.storefront_outlined,
-          'active_icon': Icons.storefront,
-          'page': '/inventory',
-        },
-      if (userType == SUPERADMIN_TYPE_NAME || userType == FRONTOFFICE_TYPE_NAME)
-        {
-          'name': 'HR',
-          'icon': Icons.groups_3_outlined,
-          'active_icon': Icons.groups_3,
-          'page': '/workforce',
-        },
-      if (userType == SUPERADMIN_TYPE_NAME || userType == FRONTOFFICE_TYPE_NAME)
-        {
-          'name': 'Analytics',
-          'icon': Icons.analytics_outlined,
-          'active_icon': Icons.analytics_rounded,
-          'page': '/analytics',
-        },
-      if (userType == SUPERADMIN_TYPE_NAME ||
-          userType == FRONTOFFICE_TYPE_NAME ||
-          userType == EMPLOYEE_TYPE_NAME)
-        {
-          'name': 'Settings',
-          'icon': Icons.settings_outlined,
-          'active_icon': Icons.settings,
-          'page': '/settings',
-        },
-    ];
+List<Map<String, Object>> _destinations(String? rawUserType) {
+  final userType = normalizeUserType(rawUserType);
+  final isEmployee = userType == EMPLOYEE_TYPE_NAME;
+
+  return [
+    if (userType == SUPERADMIN_TYPE_NAME ||
+        userType == FRONTOFFICE_TYPE_NAME ||
+        isEmployee)
+      {
+        'name': 'Catalog',
+        'icon': Icons.widgets_outlined,
+        'active_icon': Icons.widgets,
+        'page': '/',
+      },
+    if (userType == SUPERADMIN_TYPE_NAME ||
+        userType == FRONTOFFICE_TYPE_NAME ||
+        isEmployee)
+      {
+        'name': 'Tickets',
+        'icon': Icons.confirmation_number_outlined,
+        'active_icon': Icons.confirmation_number,
+        'page': '/orders',
+      },
+    if (isEmployee)
+      {
+        'name': 'Comms',
+        'icon': Icons.payments_outlined,
+        'active_icon': Icons.payments,
+        'page': '/settings/commission',
+      },
+    if (userType == SUPERADMIN_TYPE_NAME ||
+        userType == FRONTOFFICE_TYPE_NAME ||
+        isEmployee)
+      {
+        'name': 'Stock',
+        'icon': Icons.inventory_2_outlined,
+        'active_icon': Icons.inventory_2,
+        'page': '/inventory',
+      },
+    if (userType == SUPERADMIN_TYPE_NAME || userType == FRONTOFFICE_TYPE_NAME)
+      {
+        'name': 'HR',
+        'icon': Icons.groups_3_outlined,
+        'active_icon': Icons.groups_3,
+        'page': '/workforce',
+      },
+    if (userType == SUPERADMIN_TYPE_NAME)
+      {
+        'name': 'Analytics',
+        'icon': Icons.analytics_outlined,
+        'active_icon': Icons.analytics_rounded,
+        'page': '/analytics',
+      },
+    if (userType == SUPERADMIN_TYPE_NAME ||
+        userType == FRONTOFFICE_TYPE_NAME ||
+        isEmployee)
+      {
+        'name': 'Settings',
+        'icon': Icons.settings_outlined,
+        'active_icon': Icons.settings,
+        'page': '/settings',
+      },
+  ];
+}

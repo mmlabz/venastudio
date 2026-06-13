@@ -591,9 +591,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 padding: const EdgeInsets.only(bottom: 24),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,
-                  childAspectRatio: 0.85,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                  mainAxisExtent: width >= 620 ? 220 : 230,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
                 ),
                 itemCount: services.length,
                 itemBuilder: (context, index) {

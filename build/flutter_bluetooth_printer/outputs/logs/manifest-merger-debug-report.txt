@@ -1,0 +1,43 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:1:1-20:12
+INJECTED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:1:1-20:12
+	package
+		ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:3:3-57
+		INJECTED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:2:3-61
+uses-permission#android.permission.BLUETOOTH
+ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:5:3-6:51
+	android:name
+		ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:6:5-48
+uses-permission#android.permission.BLUETOOTH_ADMIN
+ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:8:3-9:57
+	android:name
+		ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:9:5-54
+uses-permission#android.permission.BLUETOOTH_SCAN
+ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:11:3-13:54
+	android:usesPermissionFlags
+		ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:13:5-51
+	android:name
+		ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:12:5-53
+uses-permission#android.permission.BLUETOOTH_CONNECT
+ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:15:3-74
+	android:name
+		ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:15:20-71
+uses-permission#android.permission.ACCESS_FINE_LOCATION
+ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:17:3-77
+	android:name
+		ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:17:20-74
+uses-permission#android.permission.ACCESS_COARSE_LOCATION
+ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:18:3-79
+	android:name
+		ADDED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml:18:20-76
+uses-sdk
+INJECTED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml
+INJECTED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/joshua/.pub-cache/hosted/pub.dev/flutter_bluetooth_printer-2.19.0/android/src/main/AndroidManifest.xml

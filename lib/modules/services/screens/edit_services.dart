@@ -9,10 +9,13 @@ class EditServicesPage extends ConsumerStatefulWidget {
 
 class _EditServicesPageState extends ConsumerState<EditServicesPage>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabController = TabController(
-    length: 2,
-    vsync: this,
-  );
+  late final TabController _tabController = TabController(length: 2, vsync: this);
+
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  String _searchQuery = '';
+  bool _showHidden = false;
 
   static const Color venaBg = Color(0xffEEF9FB);
   static const Color venaTeal = Color(0xff00BFD8);
@@ -23,6 +26,8 @@ class _EditServicesPageState extends ConsumerState<EditServicesPage>
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -37,14 +42,20 @@ class _EditServicesPageState extends ConsumerState<EditServicesPage>
   @override
   Widget build(BuildContext context) {
     final businessServices = ref.watch(businessServicesProvider);
-    final allitems = businessServices.services;
+    final allItems = businessServices.services;
 
-    final services = allitems
-        .where((x) => x.type.toLowerCase() == 'main')
+    final scopedItems = _showHidden
+        ? allItems
+        : allItems.where((item) => item.isVisible).toList();
+
+    final searchedItems = _filterBySearch(scopedItems);
+
+    final services = searchedItems
+        .where((item) => item.type.toLowerCase().trim() == 'main')
         .toList();
 
-    final addons = allitems
-        .where((x) => x.type.toLowerCase() == 'addon')
+    final addons = searchedItems
+        .where((item) => item.type.toLowerCase().trim() == 'addon')
         .toList();
 
     return Scaffold(
@@ -57,27 +68,40 @@ class _EditServicesPageState extends ConsumerState<EditServicesPage>
         leading: context.backIcon(ref, _goBack),
         title: const Text(
           'Edit Services',
-          style: TextStyle(color: venaDark, fontWeight: FontWeight.w900),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(54),
-          child: _tabBar(),
-        ),
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xffF8FDFF), Color(0xffEEF9FB), Color(0xffE4F7FA)],
+          style: TextStyle(
+            color: venaDark,
+            fontWeight: FontWeight.w900,
+            fontSize: 21,
           ),
         ),
-        child: TabBarView(
-          controller: _tabController,
-          children: [_items(services), _items(addons)],
-        ),
+      ),
+      body: Column(
+        children: [
+          _topControls(),
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xffF8FDFF),
+                    Color(0xffEEF9FB),
+                    Color(0xffE4F7FA),
+                  ],
+                ),
+              ),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _items(services, emptyText: _emptyText('services')),
+                  _items(addons, emptyText: _emptyText('addons')),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: venaTeal,
@@ -93,13 +117,27 @@ class _EditServicesPageState extends ConsumerState<EditServicesPage>
     );
   }
 
+  Widget _topControls() {
+    return Container(
+      color: venaBg,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _tabBar(),
+          const SizedBox(height: 10),
+          _searchBar(),
+        ],
+      ),
+    );
+  }
+
   Widget _tabBar() {
     return Container(
       height: 46,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.94),
+        color: Colors.white.withOpacity(0.96),
         border: Border.all(color: venaLine),
       ),
       child: TabBar(
@@ -121,26 +159,135 @@ class _EditServicesPageState extends ConsumerState<EditServicesPage>
     );
   }
 
-  Widget _items(List<Savis> items) {
-    if (items.isEmpty) {
-      return emptyState(ref, text: 'No items available');
+  Widget _searchBar() {
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 52,
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              enabled: true,
+              readOnly: false,
+              autofocus: false,
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.search,
+              onTap: () => _searchFocusNode.requestFocus(),
+              onChanged: (value) {
+                if (!mounted) return;
+                setState(() => _searchQuery = value);
+              },
+              style: const TextStyle(
+                color: venaDark,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Search services, addons, price or commission...',
+                hintStyle: const TextStyle(
+                  color: venaMuted,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+                prefixIcon: const Icon(Icons.search_rounded, color: venaMuted),
+                suffixIcon: _searchQuery.trim().isNotEmpty
+                    ? IconButton(
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                          _searchFocusNode.requestFocus();
+                        },
+                        icon: const Icon(Icons.close_rounded, color: venaMuted),
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                border: const OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: venaLine),
+                ),
+                enabledBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: venaLine),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.zero,
+                  borderSide: BorderSide(color: venaTeal, width: 1.5),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Tooltip(
+          message: _showHidden ? 'Hide inactive services' : 'Show hidden services',
+          child: InkWell(
+            onTap: () => setState(() => _showHidden = !_showHidden),
+            child: Container(
+              height: 52,
+              width: 52,
+              decoration: BoxDecoration(
+                color: _showHidden ? venaTeal : Colors.white,
+                border: Border.all(color: _showHidden ? venaTeal : venaLine),
+              ),
+              child: Icon(
+                _showHidden
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
+                color: _showHidden ? Colors.white : venaMuted,
+                size: 22,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Savis> _filterBySearch(List<Savis> items) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return items;
+
+    return items.where((item) {
+      final name = item.name.toLowerCase();
+      final type = item.type.toLowerCase();
+      final amount = item.amount.toString().toLowerCase();
+      final commission = item.commission.toString().toLowerCase();
+
+      return name.contains(query) ||
+          type.contains(query) ||
+          amount.contains(query) ||
+          commission.contains(query);
+    }).toList();
+  }
+
+  String _emptyText(String tabName) {
+    if (_searchQuery.trim().isNotEmpty) {
+      return 'No $tabName match "$_searchQuery"';
     }
+    if (!_showHidden) return 'No visible $tabName available';
+    return 'No $tabName available';
+  }
+
+  Widget _items(List<Savis> items, {required String emptyText}) {
+    if (items.isEmpty) return emptyState(ref, text: emptyText);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-
         final crossAxisCount = width > 1200
             ? 5
             : width > 900
-            ? 4
-            : width > 600
-            ? 3
-            : 2;
-
+                ? 4
+                : width > 600
+                    ? 3
+                    : 2;
         final aspectRatio = width < 420 ? 0.72 : 0.78;
 
         return GridView.builder(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
@@ -151,15 +298,17 @@ class _EditServicesPageState extends ConsumerState<EditServicesPage>
           itemCount: items.length,
           itemBuilder: (context, index) {
             final savis = items[index];
-
             return Stack(
               children: [
                 Positioned.fill(
-                  child: SavisCard(
-                    savis: savis,
-                    width: double.infinity,
-                    showAddButton: false,
-                    onEdit: () => _editService(savis),
+                  child: Opacity(
+                    opacity: savis.isVisible ? 1 : 0.48,
+                    child: SavisCard(
+                      savis: savis,
+                      width: double.infinity,
+                      showAddButton: false,
+                      onEdit: () => _editService(savis),
+                    ),
                   ),
                 ),
                 Positioned(
@@ -182,6 +331,29 @@ class _EditServicesPageState extends ConsumerState<EditServicesPage>
                     ),
                   ),
                 ),
+                if (!savis.isVisible)
+                  Positioned(
+                    left: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xffD94B4B).withOpacity(0.95),
+                        border: Border.all(color: Colors.white.withOpacity(0.5)),
+                      ),
+                      child: const Text(
+                        'Hidden',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             );
           },
@@ -192,13 +364,9 @@ class _EditServicesPageState extends ConsumerState<EditServicesPage>
 
   void _addService() {
     final theme = ref.read(themeServicesProvider);
-
     EditSavisPage.show(context).then((value) {
       if (value == '200') {
-        context.showToast(
-          'Service added',
-          textColor: theme.textIconPrimaryColor,
-        );
+        context.showToast('Service added', textColor: theme.textIconPrimaryColor);
         ref.invalidate(businessServicesProvider);
       }
     });
@@ -206,13 +374,9 @@ class _EditServicesPageState extends ConsumerState<EditServicesPage>
 
   void _editService(Savis savis) {
     final theme = ref.read(themeServicesProvider);
-
     EditSavisPage.show(context, savis).then((value) {
       if (value == '200') {
-        context.showToast(
-          'Updated successfully',
-          textColor: theme.textIconPrimaryColor,
-        );
+        context.showToast('Updated successfully', textColor: theme.textIconPrimaryColor);
         ref.invalidate(businessServicesProvider);
       }
     });

@@ -35,13 +35,18 @@ class OrderServiceNotifier extends StateNotifier<OrdersState> {
     try {
       final user = _user;
 
+      // Some backend endpoints treat `user` as an admin-like role and return
+      // everything. In Vena Studio, `user` is employee-equivalent, so orders
+      // requests must post the normalized backend role.
+      final orderUserType = normalizeUserType(user?.type);
+
       final body = {
         'id': '${user?.id}',
         'industry': user?.industry,
         'shop': user?.shop,
-        'type': user?.type,
+        'type': orderUserType,
         'store': user?.storeName,
-        'usertype': '',
+        'usertype': orderUserType,
         if (range != null) ...{
           'start': sDate(range.$1),
           'end': sDate(range.$2),

@@ -762,6 +762,16 @@ class OrderView extends ConsumerWidget {
                         .money,
                     style: TextStyle(color: theme.defultColor),
                   ),
+                  if ((item['ticket']?.toString() ?? '').isNotEmpty)
+                    Text(
+                      "Ticket: ${item['ticket']}",
+                      style: TextStyle(color: theme.defultColor),
+                    ),
+                  if ((item['actualDuration']?.toString() ?? '').isNotEmpty)
+                    Text(
+                      "Time taken: ${item['actualDuration']}",
+                      style: TextStyle(color: theme.defultColor),
+                    ),
                 ],
               ),
             ),

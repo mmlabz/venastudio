@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:venastudio/common.dart';
 
 final businessServicesProvider =
@@ -40,7 +41,7 @@ class DashBoardServiceNotifier extends StateNotifier<ServicesState> {
     }
   }
 
-  Future<void> update(Savis savis) async {
+  Future<void> update(Savis savis, {File? imageFile}) async {
     if (authService.value != null) {
       final user = authService.value!.user;
       final body = {
@@ -57,14 +58,24 @@ class DashBoardServiceNotifier extends StateNotifier<ServicesState> {
         'type': savis.type,
         'commission': '${savis.commission}',
         'discount': '${savis.discount}',
+        'availability': '${savis.availability}',
         'start': savis.discountStartDate,
         'end': savis.discountEndDate,
       };
-      await _apiService.post('/edit_service.php', body: body);
+      if (imageFile != null) {
+        await _apiService.multipartPost(
+          '/edit_service.php',
+          fields: body.map((key, value) => MapEntry(key, '${value ?? ''}')),
+          file: imageFile,
+          print: true,
+        );
+      } else {
+        await _apiService.post('/edit_service.php', body: body);
+      }
     }
   }
 
-  Future<void> add(Savis savis) async {
+  Future<void> add(Savis savis, {File? imageFile}) async {
     if (authService.value != null) {
       final user = authService.value!.user;
       final body = {
@@ -76,8 +87,18 @@ class DashBoardServiceNotifier extends StateNotifier<ServicesState> {
         'shop': user.shop,
         'name': savis.name,
         'amount': '${savis.amount.toDouble()}',
+        'availability': '${savis.availability}',
       };
-      await _apiService.post('/add_service.php', body: body, print: true);
+      if (imageFile != null) {
+        await _apiService.multipartPost(
+          '/add_service.php',
+          fields: body.map((key, value) => MapEntry(key, '${value ?? ''}')),
+          file: imageFile,
+          print: true,
+        );
+      } else {
+        await _apiService.post('/add_service.php', body: body, print: true);
+      }
     }
   }
 }

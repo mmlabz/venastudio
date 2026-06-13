@@ -13,6 +13,23 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
   static const Color venaDanger = Color(0xffD94B4B);
   static const Color venaSuccess = Color(0xff13A76B);
 
+  static int _safeInt(dynamic value, {int fallback = 0}) {
+    if (value == null) return fallback;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString()) ?? fallback;
+  }
+
+  static String _safeString(dynamic value, {String fallback = ''}) {
+    if (value == null) return fallback;
+    return value.toString();
+  }
+
+  static List<dynamic> _safeList(dynamic value) {
+    if (value is List) return value;
+    return const [];
+  }
+
   static Future<void> showOrderDetails({
     required BuildContext context,
     required WidgetRef ref,
@@ -133,7 +150,7 @@ class CompletedOrdersPage extends ConsumerStatefulWidget {
         itemBuilder: (context, index) {
           final item = details[index] as Map<String, dynamic>;
           final addons = item['addons'] as List<dynamic>? ?? [];
-          final orderId = item['orderid'] as int? ?? 0;
+          final orderId = _safeInt(item['orderid']);
 
           return addons.isNotEmpty
               ? _buildAddonExpansionTile(item, addons)
@@ -595,9 +612,9 @@ class _CompletedOrdersPageState extends ConsumerState<CompletedOrdersPage> {
                     CompletedOrdersPage.showOrderDetails(
                       context: context,
                       ref: ref,
-                      details: order['orderItems'],
-                      bill: order['billno'],
-                      orderid: order['id'] as int,
+                      details: CompletedOrdersPage._safeList(order['orderItems']),
+                      bill: CompletedOrdersPage._safeString(order['billno']),
+                      orderid: CompletedOrdersPage._safeInt(order['id']),
                       end: DateTime.tryParse(order['endTime'] as String? ?? ''),
                       agentsService: agentsService,
                     );
@@ -835,9 +852,9 @@ class _CompletedOrdersPageState extends ConsumerState<CompletedOrdersPage> {
         CompletedOrdersPage.showOrderDetails(
           context: context,
           ref: ref,
-          details: order['orderItems'],
-          bill: order['billno'],
-          orderid: order['id'] as int,
+          details: CompletedOrdersPage._safeList(order['orderItems']),
+          bill: CompletedOrdersPage._safeString(order['billno']),
+          orderid: CompletedOrdersPage._safeInt(order['id']),
           end: DateTime.tryParse(order['endTime'] as String? ?? ''),
           agentsService: agentsService,
         );

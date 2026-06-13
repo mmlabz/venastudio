@@ -86,10 +86,16 @@ class SettingsPage extends ConsumerWidget {
                                   childAspectRatio: isSmallScreen ? 1.65 : 1.75,
                                 ),
                             children: actions.entries.map((entry) {
+                              final userType = normalizeUserType(user?.type);
                               final items = entry.value
                                   .where(
-                                    (action) => (action['show'] as List<String>)
-                                        .contains(user?.type),
+                                    (action) => (action['show'] as List).any(
+                                      (allowedType) =>
+                                          normalizeUserType(
+                                            allowedType.toString(),
+                                          ) ==
+                                          userType,
+                                    ),
                                   )
                                   .toList();
 
@@ -340,7 +346,7 @@ class _SettingsCategoryCard extends StatelessWidget {
   }
 }
 
-class _SettingsActionTile extends StatelessWidget {
+class _SettingsActionTile extends ConsumerWidget {
   final String title;
   final IconData icon;
   final String route;
@@ -352,9 +358,15 @@ class _SettingsActionTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return InkWell(
-      onTap: () => context.go('/settings/$route'),
+      onTap: () {
+        if (route == 'commission') {
+          ref.invalidate(commissionServicesProvider);
+        }
+
+        context.go('/settings/$route');
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
@@ -413,7 +425,10 @@ Map<String, List<Map<String, dynamic>>> _getCategorizedActions(
 ) {
   bool userHasPermission(List<Map<String, dynamic>> actions) {
     return actions.any((action) {
-      return action['show'].contains(user?.type);
+      final userType = normalizeUserType(user?.type);
+      return (action['show'] as List).any(
+        (allowedType) => normalizeUserType(allowedType.toString()) == userType,
+      );
     });
   }
 
@@ -426,7 +441,7 @@ Map<String, List<Map<String, dynamic>>> _getCategorizedActions(
         'show': [SUPERADMIN_TYPE_NAME, EMPLOYEE_TYPE_NAME],
       },
       if ((!st.loading && st.showCashRegister) ||
-          user?.type == SUPERADMIN_TYPE_NAME)
+          isSuperAdminType(user?.type))
         {
           'name': 'Cash Register',
           'page': 'cash_register',
@@ -445,7 +460,7 @@ Map<String, List<Map<String, dynamic>>> _getCategorizedActions(
         'icon': Icons.fact_check_rounded,
         'show': [SUPERADMIN_TYPE_NAME, FRONTOFFICE_TYPE_NAME, EMPLOYEE_TYPE_NAME],
       },
-      if ((!st.loading && st.showSummary) || user?.type == SUPERADMIN_TYPE_NAME)
+      if ((!st.loading && st.showSummary) || isSuperAdminType(user?.type))
         {
           'name': 'Summary',
           'page': 'summary',

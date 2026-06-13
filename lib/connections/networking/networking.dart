@@ -52,6 +52,39 @@ class ApiProvider {
     return responseJson;
   }
 
+
+  Future<dynamic> multipartPost(
+    String url, {
+    required Map<String, String> fields,
+    File? file,
+    String fileField = 'image',
+    String? token,
+    bool? print,
+  }) async {
+    try {
+      final request = http.MultipartRequest('POST', uri(url));
+      if (token != null) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      request.fields.addAll(fields);
+      if (file != null && await file.exists()) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            fileField,
+            file.path,
+            filename: file.path.split(Platform.pathSeparator).last,
+          ),
+        );
+      }
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+      if (print ?? false) debugPrint(response.body);
+      return _response(response);
+    } on SocketException {
+      throw FetchDataException('No Internet connection');
+    }
+  }
+
   Future<dynamic> put(
     String url, {
     required Map<String, dynamic> body,

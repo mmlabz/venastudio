@@ -68,7 +68,7 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
     final theme = ref.watch(themeServicesProvider);
     final user = _currentUser();
 
-    final bool isEmployee = user?.type == EMPLOYEE_TYPE_NAME;
+    final bool isEmployee = isEmployeeType(user?.type);
     final bool isFrontOffice = user?.type == FRONTOFFICE_TYPE_NAME;
 
     final ordersState = ref.watch(orderServicesProvider);
@@ -579,6 +579,7 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
     final amount = (num.tryParse(order['amount'].toString()) ?? 0).toDouble();
     final agentName = order['agentname']?.toString() ?? '';
     final receipt = order['receipt']?.toString() ?? 'N/A';
+    final duration = order['duration']?.toString() ?? '';
 
     final dateText = order['date'] != null
         ? DateFormat.yMMMEd().format(
@@ -649,21 +650,38 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
             ],
             _orderInfoRow(
               icon: Icons.confirmation_number_outlined,
-              label: 'Receipt',
+              label: 'Ticket',
               value: receipt,
             ),
             const SizedBox(height: 7),
+            if (duration.isNotEmpty) ...[
+              _orderInfoRow(
+                icon: Icons.timer_outlined,
+                label: 'Time Taken',
+                value: duration,
+              ),
+              const SizedBox(height: 7),
+            ],
             _orderInfoRow(
               icon: Icons.calendar_today_outlined,
               label: 'Date',
               value: dateText,
             ),
+            if (isEmployee) ...[
+              const SizedBox(height: 7),
+              _employeeAddonSummary(order),
+            ],
             const Spacer(),
             Row(
               children: [
                 Expanded(
                   child: TextButton(
                     onPressed: () {
+                      if (isEmployee) {
+                        _showEmployeeServiceDetails(order);
+                        return;
+                      }
+
                       OrderView.show(
                         context,
                         order['id'],
@@ -804,6 +822,324 @@ class _OrdersPageState extends ConsumerState<OrdersPage>
       ),
     );
   }
+
+
+  List<Map<String, dynamic>> _safeOrderItems(Map<String, dynamic> order) {
+    final raw = order['orderItems'];
+    if (raw is List) {
+      return raw
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return const [];
+  }
+
+  List<Map<String, dynamic>> _safeAddons(Map item) {
+    final raw = item['addons'];
+    if (raw is List) {
+      return raw
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    return const [];
+  }
+
+  double _safeMoney(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse('${value ?? 0}') ?? 0.0;
+  }
+
+  Widget _employeeAddonSummary(Map<String, dynamic> order) {
+    double additions = 0;
+    double deductions = 0;
+
+    for (final item in _safeOrderItems(order)) {
+      for (final addon in _safeAddons(item)) {
+        final effect = '${addon['effect'] ?? addon['type'] ?? ''}'.toLowerCase();
+        final signed = _safeMoney(addon['signed_amount'] ?? addon['commission']);
+        final amount = _safeMoney(addon['amount'] ?? addon['price']);
+
+        if (effect.contains('deduct') || signed < 0) {
+          deductions += signed < 0 ? signed.abs() : amount;
+        } else {
+          additions += amount > 0 ? amount : signed;
+        }
+      }
+    }
+
+    if (additions <= 0 && deductions <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+      decoration: BoxDecoration(
+        color: venaBg.withOpacity(.78),
+        border: Border.all(color: venaLine),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.tune_rounded, size: 15, color: venaTeal),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              'Add-ons  +${additions.money}   -${deductions.money}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: venaDark,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEmployeeServiceDetails(Map<String, dynamic> order) {
+    final items = _safeOrderItems(order);
+    final billNo = '${order['billno'] ?? ''}'.split('(').first;
+    final receipt = '${order['receipt'] ?? 'N/A'}';
+    final duration = '${order['duration'] ?? ''}';
+
+    showDialog<void>(
+      context: context,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          insetPadding: const EdgeInsets.all(18),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 720,
+              maxHeight: MediaQuery.of(context).size.height * .84,
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 10, 14),
+                  decoration: const BoxDecoration(
+                    color: venaBg,
+                    border: Border(bottom: BorderSide(color: venaLine)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        height: 40,
+                        width: 40,
+                        decoration: BoxDecoration(
+                          color: venaTeal.withOpacity(.10),
+                          border: Border.all(color: venaTeal.withOpacity(.25)),
+                        ),
+                        child: const Icon(
+                          Icons.confirmation_number_outlined,
+                          color: venaTeal,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Ticket: $receipt',
+                              style: const TextStyle(
+                                color: venaDark,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 17,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              'Order: $billNo${duration.isNotEmpty ? ' • Time: $duration' : ''}',
+                              style: const TextStyle(
+                                color: venaMuted,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded, color: venaDark),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: items.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No assigned services found for this ticket.',
+                            style: TextStyle(
+                              color: venaMuted,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (_, index) => _employeeServiceDetailCard(items[index]),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _employeeServiceDetailCard(Map<String, dynamic> item) {
+    final addons = _safeAddons(item);
+    final serviceName = '${item['name'] ?? item['service'] ?? 'Service'}';
+    final cartId = '${item['cartid'] ?? item['id'] ?? ''}';
+    final price = _safeMoney(item['price']);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xffF8FDFF),
+        border: Border.all(color: venaLine),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 36,
+                width: 36,
+                decoration: BoxDecoration(
+                  color: venaTeal.withOpacity(.10),
+                  border: Border.all(color: venaTeal.withOpacity(.25)),
+                ),
+                child: const Icon(Icons.spa_outlined, color: venaTeal, size: 19),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      serviceName,
+                      style: const TextStyle(
+                        color: venaDark,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (cartId.isNotEmpty)
+                      Text(
+                        'Service Row: $cartId',
+                        style: const TextStyle(
+                          color: venaMuted,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Text(
+                price.money,
+                style: const TextStyle(
+                  color: venaTeal,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          if (addons.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Text(
+              'Commission Add-ons',
+              style: TextStyle(
+                color: venaDark,
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 7),
+            ...addons.map(_employeeAddonRow),
+          ],
+          if (addons.isEmpty) ...[
+            const SizedBox(height: 10),
+            const Text(
+              'No add-ons affected this service.',
+              style: TextStyle(
+                color: venaMuted,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _employeeAddonRow(Map<String, dynamic> addon) {
+    final effect = '${addon['effect'] ?? addon['type'] ?? ''}'.toLowerCase();
+    final signed = _safeMoney(addon['signed_amount'] ?? addon['commission']);
+    final amount = _safeMoney(addon['amount'] ?? addon['price']);
+    final isDeduction = effect.contains('deduct') || signed < 0;
+    final displayAmount = amount > 0 ? amount : signed.abs();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDeduction
+            ? Colors.red.withOpacity(.055)
+            : Colors.green.withOpacity(.055),
+        border: Border.all(
+          color: isDeduction
+              ? Colors.red.withOpacity(.22)
+              : Colors.green.withOpacity(.22),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isDeduction ? Icons.remove_circle_outline : Icons.add_circle_outline,
+            color: isDeduction ? Colors.red : Colors.green,
+            size: 17,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${addon['name'] ?? addon['service'] ?? 'Add-on'}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: venaDark,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Text(
+            '${isDeduction ? '-' : '+'}${displayAmount.money}',
+            style: TextStyle(
+              color: isDeduction ? Colors.red : Colors.green,
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
 
   Future<Map<String, dynamic>> _returnableStatus(Map<String, dynamic> order) async {
